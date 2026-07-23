@@ -1,0 +1,10 @@
+{
+  "name": "@understand-anything/skill-vendored",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "graphology": "~0.26.0",
+    "graphology-communities-louvain": "^2.0.2"
+  }
+}

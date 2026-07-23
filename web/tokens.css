@@ -1,0 +1,64 @@
+/* Design tokens — shell-app (EX-018). Un seul :root, préfixe --ot- (ui.md §2). */
+:root {
+  /* 2.1 Palette */
+  --ot-ink: #2f4a54;
+  --ot-accent: #c96f4a;
+  --ot-bg: #f7f5f1;
+  --ot-card: #ffffff;
+  --ot-line: #e3ded6;
+  --ot-muted: #6b7a80;
+  --ot-ok: #2e7d46;
+  --ot-code: #3e689e;
+  --ot-sage: #8ba888;
+  --ot-gold: #c9a34a;
+  --ot-road: #b6ab9b;
+  --ot-board: #8a6f52;
+  --ot-board-post: #6f5940;
+  --ot-board-text: #fdf6ea;
+  --ot-badge-ok-bg: #e7f2ea;
+  --ot-badge-soon-bg: #efece6;
+  --ot-tag-bg: #fffdf9;
+  --ot-domain-bg: #faf3ee;
+  --ot-white: #fff;
+  --ot-road-dash: #fdf9f2;
+  --ot-accent-tint: #faf1ec;
+  --ot-paper: #fbfaf8;
+  --ot-paper-alt: #f6f4f0;
+  --ot-code-tint: #eef3f9;
+  --ot-slate: #41545c;
+
+  /* 2.1b Thème sombre du visualiseur de code (.codebox) */
+  --ot-codebox-bg: #1e2a30;
+  --ot-codebox-fg: #dce6ea;
+  --ot-codebox-line: #33454e;
+  --ot-codebox-title: #9fc3d8;
+  --ot-codebox-btn: #55707c;
+  --ot-codebox-ln: #5d7681;
+  --ot-codebox-hi-bg: #2c3f49;
+  --ot-codebox-hi-ln: #e3b265;
+
+  /* 2.2 Palette de lignes de secours (INV-007) */
+  --ot-line-1: #3e689e;
+  --ot-line-2: #c96f4a;
+  --ot-line-3: #8ba888;
+  --ot-line-4: #c9a34a;
+  --ot-line-5: #7b6d8d;
+  --ot-line-6: #4c8b83;
+
+  /* 2.3 Typographie */
+  --ot-font-serif: Georgia, 'Times New Roman', serif;
+  --ot-font-sans: 'Segoe UI', system-ui, sans-serif;
+  --ot-font-mono: Consolas, monospace;
+
+  /* 2.4 Formes, ombres, espacements */
+  --ot-radius-pill: 999px;
+  --ot-radius-card: 18px;
+  --ot-radius-md: 14px;
+  --ot-radius-sm: 8px;
+  --ot-shadow-card: 0 6px 18px rgba(47, 74, 84, .12);
+  --ot-shadow-accent: 0 6px 18px rgba(201, 111, 74, .18);
+  --ot-shadow-pin: 0 2px 8px rgba(47, 74, 84, .18);
+  --ot-gap: 24px;
+  --ot-wrap-max: 1080px;
+  --ot-motion: transform .15s, box-shadow .15s;
+}

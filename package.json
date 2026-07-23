@@ -1,0 +1,11 @@
+{
+  "name": "open-tour-e2e",
+  "private": true,
+  "description": "Tooling de test uniquement (Playwright, T-009) — l'app web/ reste zero-dependency runtime (EX-020).",
+  "scripts": {
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1"
+  }
+}

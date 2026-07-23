@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+pipeline/vendor/ua/**/node_modules
+pipeline/vendor/ua/**/dist
+
+# T-009 e2e (Playwright, devDependency de test uniquement — EX-020)
+node_modules/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
