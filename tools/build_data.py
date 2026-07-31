@@ -104,11 +104,10 @@ def build_flow(symbols: list[dict], calls_by_source: dict):
     return {"defs": defs, "entries": entries}
 
 
-def main() -> None:
-    usecases_dir = resolve_usecases_dir(sys.argv[1] if len(sys.argv) > 1 else None)
-    usecases = load_usecases(usecases_dir)
-    graph = json.loads(Path(usecases["project"]["graphSource"]).read_text(encoding="utf-8"))
-
+def extract_graph(usecases: dict, graph: dict) -> dict:
+    """Filtre le knowledge-graph aux nodes référencés par les use cases et
+    reconstruit le dict {file_id: FileEntry} écrit dans data.js. Pur : ne lit
+    rien sur disque, testable en mémoire."""
     nodes = {n["id"]: n for n in graph["nodes"]}
     contains = {}        # file id -> [symbol ids]
     tested_by = {}       # prod id -> [test ids]
@@ -145,6 +144,7 @@ def main() -> None:
                 "name": s["name"],
                 "title": short_title(s.get("summary", "")),
                 "summary": s.get("summary", ""),
+                "rules": s.get("rules", []),
                 "lineRange": s.get("lineRange"),
                 "tests": [t for t in tested_by.get(sid, [])],
             })
@@ -157,6 +157,7 @@ def main() -> None:
             "filePath": file_path,
             "summary": n.get("summary", ""),
             "tags": n.get("tags", []),
+            "rules": n.get("rules", []),
             "symbols": symbols,
             "tests": [t for t in tested_by.get(fid, [])],
             "flow": build_flow(symbols, calls_by_source),
@@ -165,6 +166,15 @@ def main() -> None:
     if missing:
         raise SystemExit(f"Nœuds référencés introuvables dans le graphe : {missing}")
 
+    return extract
+
+
+def main() -> None:
+    usecases_dir = resolve_usecases_dir(sys.argv[1] if len(sys.argv) > 1 else None)
+    usecases = load_usecases(usecases_dir)
+    graph = json.loads(Path(usecases["project"]["graphSource"]).read_text(encoding="utf-8"))
+
+    extract = extract_graph(usecases, graph)
     out = usecases_dir.parent / "data.js"
     payload = {"usecases": usecases, "graph": extract}
     out.write_text("window.OPENTOUR_DATA = " + json.dumps(payload, ensure_ascii=False, indent=1) + ";\n", encoding="utf-8")

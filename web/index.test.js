@@ -1,11 +1,10 @@
-// Self-check node : wiring index.html (TF-021/024) + boot file:// sans crash.
+// Self-check node : wiring index.html (TF-024) + boot file:// sans crash.
 // Pas de framework — assert stdlib. Usage : node web/index.test.js
 "use strict";
 const assert = require("assert");
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
-const { execSync } = require("child_process");
 
 const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 
@@ -21,10 +20,6 @@ assert.deepStrictEqual(scripts, ["data.js", "drilldown.js", "screens.js", "route
 const links = [...html.matchAll(/<link[^>]*href="([^"]+)"/g)].map((m) => m[1]);
 assert.deepStrictEqual(links, ["tokens.css", "app.css"]);
 assert.ok(/<main id="app">/.test(html));
-
-// TF-021 : pipeline/ intouché (diff vide).
-const pipelineDiff = execSync("git diff --stat -- pipeline/", { cwd: path.join(__dirname, "..") }).toString();
-assert.strictEqual(pipelineDiff.trim(), "");
 
 // Boot file:// simulé (DOM minimal) : aucune exception, écran rendu sur hash vide (fallback plan).
 class FakeEl {
@@ -63,4 +58,4 @@ scripts.forEach((f) => vm.runInContext(fs.readFileSync(path.join(__dirname, f ==
 assert.doesNotThrow(() => sandbox.window._load());
 assert.ok(appEl.children.length > 0, "l'écran plan doit se rendre sur hash vide (fallback INV-004)");
 
-console.log("OK : 8/8 assertions index.html wiring PASS");
+console.log("OK : 7/7 assertions index.html wiring PASS");

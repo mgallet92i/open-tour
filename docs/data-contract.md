@@ -79,6 +79,7 @@ ou via leurs symboles) par `usecases`. Structure par entrée :
 | `filePath` | string | `node.filePath` |
 | `summary` | string | `node.summary` (produit par `enrich.py`, EX-005/006) |
 | `tags` | string[] | `node.tags` (EX-005) |
+| `rules` | string[] | `node.rules` — règles de gestion fr (`enrich.py`), défaut `[]` si absent |
 | `symbols[]` | array | fonctions/classes du fichier (edges `contains`) |
 | `tests[]` | string[] | ids de nodes test liés (edges `tested_by`, EX-007) |
 | `flow` | object \| null | call-graph intra-module dérivé des edges `calls` du knowledge-graph (`build_flow`), tous langages — `null` si aucun symbole du fichier n'a de `lineRange` exploitable |
@@ -92,6 +93,7 @@ ou via leurs symboles) par `usecases`. Structure par entrée :
 | `name` | string | `node.name` |
 | `title` | string \| null | dérivé de `summary` |
 | `summary` | string | `node.summary` |
+| `rules` | string[] | `node.rules` — règles portées par le symbole, défaut `[]` |
 | `lineRange` | `[start, end]` | `node.lineRange` |
 | `tests[]` | string[] | edges `tested_by` dont la source est ce symbole |
 
@@ -115,9 +117,11 @@ sont **pas** consommés par `web/index.html` — `merge.py` (T-006) ne les
       "filePath": "core/legacy_csv.py",
       "summary": "Parse les CSV d'export et normalise les colonnes",
       "tags": ["csv", "parsing", "legacy"],
+      "rules": ["Les colonnes manquantes sont normalisées à vide avant import"],
       "symbols": [
         {"id": "function:core/legacy_csv.py:load_all_csv", "type": "function", "name": "load_all_csv",
          "title": "Charge tous les CSV du répertoire", "summary": "Charge tous les CSV du répertoire",
+         "rules": ["Un fichier CSV vide est ignoré sans erreur"],
          "lineRange": [300, 395], "tests": ["file:tests/core/test_legacy_csv.py"]}
       ],
       "tests": ["file:tests/core/test_legacy_csv.py"],

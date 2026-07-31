@@ -50,9 +50,27 @@ assert.deepEqual(resolvedNone, [], "aucun crash si tous les ids sont absents");
   const content3 = await internal.fetchSource("web/foo.js", okFetch);
   assert.strictEqual(content3, "const x = 1;", "réponse ok -> content transmis");
 
+  // --- collectRules : groupement fichier->symbole + filtrage + cas vide ---
+  const rulesGraph = internal.collectRules(internal.resolveNodes(["file:src/a.py"], graph));
+  assert.strictEqual(rulesGraph.length, 1, "un node porteur -> un groupe fichier");
+  assert.strictEqual(rulesGraph[0].file, "src/a.py");
+  assert.ok(rulesGraph[0].fileRules.length >= 1, "règles de niveau fichier collectées");
+  assert.strictEqual(rulesGraph[0].symbols.length, 1, "seul le symbole porteur de règle apparaît");
+  assert.strictEqual(rulesGraph[0].symbols[0].label, "Lance le module A");
+  assert.ok(rulesGraph[0].symbols[0].rules.length >= 1, "règles du symbole collectées");
+
+  // filtrage : fichier sans règle fichier ni symbole porteur -> omis (sortie vide)
+  const noRules = internal.collectRules([
+    { id: "x", node: { filePath: "src/x.py", symbols: [{ name: "f", summary: "s" }] } },
+  ]);
+  assert.deepEqual(noRules, [], "aucune règle sur le node/symbole -> groupe omis");
+
+  // cas « aucune règle » : entrée vide -> sortie vide (masque le bouton)
+  assert.deepEqual(internal.collectRules([]), [], "collectRules([]) -> []");
+
   // --- contrat public OT.drilldown (design.md §3.2) ---
   assert.strictEqual(typeof sandbox.window.OT.drilldown.renderStep, "function");
   assert.strictEqual(typeof sandbox.window.OT.drilldown.openSource, "function");
 
-  console.log("OK : 11/11 assertions drilldown PASS");
+  console.log("OK : 20/20 assertions drilldown PASS");
 })();

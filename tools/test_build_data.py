@@ -6,7 +6,7 @@ Usage : python tools/test_build_data.py (ou pytest tools/).
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from build_data import load_usecases, resolve_usecases_dir
+from build_data import extract_graph, load_usecases, resolve_usecases_dir
 
 INDEX_MD = """---
 type: project
@@ -145,7 +145,44 @@ def test_resolve_usecases_dir_project_resolution():
                 assert ".open-tour/usecases/index.md" in str(e)
 
 
+FID = "file:core/legacy_csv.py"
+SID = "function:core/legacy_csv.py:load_all_csv"
+
+
+def _graph(with_rules: bool) -> tuple[dict, dict]:
+    """Graphe minimal (1 fichier + 1 symbole via edge `contains`) et usecases
+    minimal dont une étape référence le fichier. `with_rules` pilote la présence
+    de la clé `rules` sur les deux nodes (cas défaut = absente)."""
+    file_node = {"id": FID, "type": "file", "name": "legacy_csv.py",
+                 "filePath": "core/legacy_csv.py", "summary": "Parse les CSV"}
+    sym_node = {"id": SID, "type": "function", "name": "load_all_csv",
+                "summary": "Charge tous les CSV", "lineRange": [1, 10]}
+    if with_rules:
+        file_node["rules"] = ["Les colonnes manquantes sont normalisées à vide"]
+        sym_node["rules"] = ["Un fichier CSV vide est ignoré sans erreur"]
+    graph = {"nodes": [file_node, sym_node],
+             "edges": [{"type": "contains", "source": FID, "target": SID}]}
+    usecases = {"usecases": [{"steps": [{"nodes": [FID], "tests": []}]}]}
+    return usecases, graph
+
+
+def test_extract_graph_propagates_rules():
+    usecases, graph = _graph(with_rules=True)
+    out = extract_graph(usecases, graph)
+    assert out[FID]["rules"] == ["Les colonnes manquantes sont normalisées à vide"]
+    assert out[FID]["symbols"][0]["rules"] == ["Un fichier CSV vide est ignoré sans erreur"]
+
+
+def test_extract_graph_rules_default_empty():
+    usecases, graph = _graph(with_rules=False)
+    out = extract_graph(usecases, graph)
+    assert out[FID]["rules"] == []
+    assert out[FID]["symbols"][0]["rules"] == []
+
+
 if __name__ == "__main__":
     test_load_usecases_reconstructs_expected_dict()
     test_resolve_usecases_dir_project_resolution()
+    test_extract_graph_propagates_rules()
+    test_extract_graph_rules_default_empty()
     print("OK test_build_data.py")
