@@ -44,9 +44,11 @@ window.OPENTOUR_DATA = {
   "file:src/a.py": {
    "id": "file:src/a.py", "type": "file", "name": "a.py", "title": "Module A",
    "filePath": "src/a.py", "summary": "Module A de la fixture.", "tags": ["entrypoint"],
+   "rules": ["Le module A ne démarre que si la configuration est chargée."],
    "symbols": [
     {"id": "function:src/a.py:run", "type": "function", "name": "run", "title": "Lance le module A",
-     "summary": "Lance le module A.", "lineRange": [1, 10], "tests": ["file:tests/test_a.py"]}
+     "summary": "Lance le module A.", "rules": ["Un appel sans argument utilise la valeur par défaut."],
+     "lineRange": [1, 10], "tests": ["file:tests/test_a.py"]}
    ],
    "tests": ["file:tests/test_a.py"],
    "flow": {"defs": {"run": {"start": 1, "end": 10, "calls": []}}, "entries": ["run"]}

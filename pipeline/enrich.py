@@ -33,8 +33,9 @@ ENRICH_SCHEMA = {
                     "summary": {"type": "string"},
                     "tags": {"type": "array", "items": {"type": "string"}},
                     "complexity": {"enum": ["simple", "moderate", "complex"]},
+                    "rules": {"type": "array", "items": {"type": "string"}},
                 },
-                "required": ["id", "summary", "tags", "complexity"],
+                "required": ["id", "summary", "tags", "complexity", "rules"],
             },
         },
     },
@@ -99,6 +100,7 @@ async def enrich(project: Path, concurrency: int = 5) -> list[Path]:
                 node["summary"] = e["summary"]
                 node["tags"] = e["tags"]
                 node["complexity"] = e["complexity"]
+                node["rules"] = e["rules"]
         write_json(path, data)
         return path
 

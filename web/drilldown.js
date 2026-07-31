@@ -26,6 +26,27 @@
     return out;
   }
 
+  // Collecteur pur nodes -> règles de gestion, groupées fichier puis symbole.
+  // Entrée : sortie de resolveNodes ([{ id, node }]). Sortie ordonnée comme
+  // l'entrée ; un fichier/symbole sans règle est omis ; aucune règle -> [].
+  function collectRules(resolved) {
+    var out = [];
+    for (var i = 0; i < resolved.length; i++) {
+      var n = resolved[i].node;
+      var fileRules = n.rules || [];
+      var symbols = [];
+      var syms = n.symbols || [];
+      for (var j = 0; j < syms.length; j++) {
+        var s = syms[j], sr = s.rules || [];
+        if (sr.length) symbols.push({ label: s.title || s.name, rules: sr });
+      }
+      if (fileRules.length || symbols.length) {
+        out.push({ file: n.filePath || n.title || n.name, fileRules: fileRules, symbols: symbols });
+      }
+    }
+    return out;
+  }
+
   // INV-006 : fetch('/src') en try/catch, échec -> content=null (repris verbatim).
   async function fetchSource(filePath, fetchFn) {
     try {
@@ -39,6 +60,7 @@
 
   // --- état module (mêmes rôles que activeStep/techOpen/activeMod du proto) ---
   var techOpen = false;
+  var rulesOpen = false;
   var activeMod = null;
   var flowOpen = new Set();
   var lastKey = null;
@@ -60,6 +82,7 @@
     var key = uc.id + "/" + stepIdx;
     if (key !== lastKey) {
       techOpen = false;
+      rulesOpen = false;
       activeMod = null;
       flowOpen.clear();
       lastKey = key;
@@ -115,7 +138,56 @@
     if (techOpen) tech.appendChild(renderTech(uc, stepIdx, step));
     reveal.appendChild(tech);
     d.appendChild(reveal);
+    var groups = collectRules(resolveNodes(step.nodes, graph()));
+    if (groups.length) {
+      var rReveal = document.createElement("div");
+      rReveal.className = "reveal";
+      var rBtn = document.createElement("button");
+      rBtn.textContent = rulesOpen ? "Masquer les règles de gestion" : "Règles de gestion";
+      rBtn.onclick = function () {
+        rulesOpen = !rulesOpen;
+        refresh();
+      };
+      rReveal.appendChild(rBtn);
+      var rBlock = document.createElement("div");
+      rBlock.className = "tech" + (rulesOpen ? " open" : "");
+      if (rulesOpen) rBlock.appendChild(renderRules(groups));
+      rReveal.appendChild(rBlock);
+      d.appendChild(rReveal);
+    }
     return d;
+  }
+
+  function renderRules(groups) {
+    var box = document.createElement("div");
+    box.className = "sym"; // réutilise le style de .sym .lbl (app.css) pour les libellés
+    groups.forEach(function (grp) {
+      var fh = document.createElement("div");
+      fh.className = "lbl";
+      fh.textContent = grp.file;
+      box.appendChild(fh);
+      if (grp.fileRules.length) box.appendChild(rulesList(grp.fileRules));
+      grp.symbols.forEach(function (sym) {
+        var sh = document.createElement("div");
+        sh.className = "lbl";
+        sh.textContent = sym.label;
+        box.appendChild(sh);
+        box.appendChild(rulesList(sym.rules));
+      });
+    });
+    return box;
+  }
+
+  function rulesList(rules) {
+    var ul = document.createElement("ul");
+    // textContent, pas innerHTML : une règle de gestion contient couramment un
+    // comparateur (« si le montant < 1000 € ») qui casserait le rendu.
+    rules.forEach(function (r) {
+      var li = document.createElement("li");
+      li.textContent = r;
+      ul.appendChild(li);
+    });
+    return ul;
   }
 
   function renderTech(uc, stepIdx, step) {
@@ -357,5 +429,5 @@
   window.OT.drilldown = { renderStep: renderStep, openSource: openSource };
   // ponytail: seam interne pour self-check unitaire (pas de jsdom dispo, projet
   // zero-dependency) — pas dans le contrat public design.md §3.2.
-  window.OT.drilldown._internal = { navState: navState, resolveNodes: resolveNodes, fetchSource: fetchSource };
+  window.OT.drilldown._internal = { navState: navState, resolveNodes: resolveNodes, fetchSource: fetchSource, collectRules: collectRules };
 })();
