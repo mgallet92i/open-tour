@@ -20,6 +20,12 @@ import _usecase_md
 from build_data import load_usecases, resolve_usecases_dir
 
 ROOT = Path(__file__).resolve().parent.parent
+
+# Même besoin que pipeline/enrich.py : un .flow-meta.xml tronqué à 60 lignes
+# n'apprend rien (balises triées alphabétiquement, <start> en fin de fichier).
+sys.path.insert(0, str(ROOT / "pipeline"))
+from flows import flow_digest  # noqa: E402
+
 MAX_SNIPPET_LINES = 60
 CANDIDATE_TAGS = ("entrypoint", "e2e")
 
@@ -78,6 +84,10 @@ def find_candidates(graph: dict, existing_ids: set[str], wanted_nodes: set[str])
 
 
 def _snippet(project: Path, file_path: str) -> str:
+    if file_path.endswith(".flow-meta.xml"):
+        digest = flow_digest(project / file_path)
+        if digest is not None:
+            return digest
     try:
         lines = (project / file_path).read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:
