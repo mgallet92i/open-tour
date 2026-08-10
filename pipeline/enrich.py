@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 from _common import intermediate_dir, read_json, write_json
+from flows import flow_digest
 
 ENRICH_SCHEMA = {
     "type": "object",
@@ -49,6 +50,12 @@ MAX_SNIPPET_LINES = 60
 
 def _snippet(project: Path, node: dict) -> str:
     file_path = project / node["filePath"]
+    if node["filePath"].endswith(".flow-meta.xml"):
+        # Métadonnée Salesforce : le XML brut tronqué à 60 lignes n'apprend
+        # rien (balises triées alphabétiquement, <start> en fin de fichier).
+        digest = flow_digest(file_path)
+        if digest is not None:
+            return digest
     try:
         lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
     except OSError:

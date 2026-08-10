@@ -12,6 +12,7 @@ from pathlib import Path
 from _common import check_host_prereqs
 from batch import batch
 from enrich import enrich
+from flows import flows
 from merge import merge
 from scan import scan
 from structure import structure
@@ -30,15 +31,17 @@ def main() -> None:
 
     check_host_prereqs()
 
-    print(f"[1/5] scan {project}")
+    print(f"[1/6] scan {project}")
     scan(project)
-    print("[2/5] batch")
+    print("[2/6] batch")
     batch(project)
-    print("[3/5] structure")
+    print("[3/6] structure")
     structure(project)
-    print("[4/5] enrich (LLM)")
+    print("[4/6] flows (Salesforce)")
+    print(f"      {flows(project)} arêtes Flow ajoutées")
+    print("[5/6] enrich (LLM)")
     asyncio.run(enrich(project, args.concurrency))
-    print("[5/5] merge")
+    print("[6/6] merge")
     out = merge(project)
     print(f"Pipeline terminé : {out}")
 
