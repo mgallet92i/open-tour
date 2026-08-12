@@ -141,6 +141,14 @@ body {
   padding: 22px 28px 28px;
 }
 
+/* Écran à hauteur bornée : la page ne défile pas, le scroll vit dans les
+   panneaux internes (liste de modules, visualiseur de code). */
+#view .screen.fill {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
 #view .vhead { margin-bottom: 18px; }
 
 #view .vhead h1 {
@@ -194,14 +202,25 @@ body {
 
 #view .rules summary:hover { color: var(--ot-accent); }
 
-#view .rules .rlist { margin: 8px 0 0; padding: 0; list-style: none; }
+/* Bornée : une longue liste dépliée ne doit pas écraser le visualiseur de code. */
+#view .rules .rlist {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 26vh;
+  overflow-y: auto;
+}
 
 #view .rules .rlist li {
   display: flex;
   gap: 10px;
-  padding: 3px 0;
+  padding: 5px 8px;
+  border-radius: var(--ot-radius-sm);
   line-height: 1.5;
 }
+
+/* Zébrage : une règle par ligne, lisibilité sur les listes longues. */
+#view .rules .rlist li:nth-child(odd) { background: color-mix(in srgb, var(--ot-white) 55%, transparent); }
 
 #view .rules .rlist .src {
   flex: 0 0 190px;
@@ -219,7 +238,7 @@ body {
   flex: 1;
   display: flex;
   gap: 16px;
-  min-height: 66vh;         /* le code reste utilisable même si les règles occupent le haut */
+  min-height: 0;            /* borné par .screen.fill : le scroll est dans les panneaux */
   align-items: stretch;
 }
 

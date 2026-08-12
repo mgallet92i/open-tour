@@ -147,7 +147,8 @@
     view.innerHTML = "";
     view.appendChild(renderCrumbs(resolved));
 
-    var screen = el("div", "screen");
+    // L'écran technique est borné en hauteur : son scroll vit dans ses panneaux.
+    var screen = el("div", "screen" + (resolved.screen === "step" ? " fill" : ""));
     view.appendChild(screen);
 
     if (resolved.screen === "personas") {
