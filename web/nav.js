@@ -3,10 +3,17 @@
 (function () {
   "use strict";
 
-  function el(tag, cls, html) {
+  function el(tag, cls) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
-    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  // Texte issu des données (titre de use case, d'étape, nom de persona) ->
+  // textContent : un « < » dans un libellé casserait le rendu en innerHTML.
+  function elText(tag, cls, text) {
+    var e = el(tag, cls);
+    e.textContent = text;
     return e;
   }
 
@@ -76,12 +83,13 @@
     nav.innerHTML = "";
     MENUS.forEach(function (section) {
       var sec = el("div", "msection");
-      sec.appendChild(el("div", "mtitle", section.title));
+      sec.appendChild(elText("div", "mtitle", section.title));
       var list = el("ul", "mitems");
       section.items.forEach(function (it) {
         var li = el("li");
-        var b = el("button", "mitem" + (it.id === active ? " active" : "") + (it.soon ? " soon" : ""),
-          '<span class="ico">' + it.icon + '</span><span class="lbl">' + it.label + "</span>");
+        var b = el("button", "mitem" + (it.id === active ? " active" : "") + (it.soon ? " soon" : ""));
+        b.appendChild(elText("span", "ico", it.icon));
+        b.appendChild(elText("span", "lbl", it.label));
         b.addEventListener("click", function () { location.hash = it.hash; });
         li.appendChild(b);
         list.appendChild(li);
@@ -131,13 +139,13 @@
     var bar = el("nav", "crumbs");
     bar.setAttribute("aria-label", "Fil d'Ariane");
     trail(resolved).forEach(function (part, i, all) {
-      if (i > 0) bar.appendChild(el("span", "sep", "&gt;"));
+      if (i > 0) bar.appendChild(elText("span", "sep", ">"));
       if (part.hash && i < all.length - 1) {
-        var a = el("a", null, part.label);
+        var a = elText("a", null, part.label);
         a.href = part.hash;
         bar.appendChild(a);
       } else {
-        bar.appendChild(el("span", "current", part.label));
+        bar.appendChild(elText("span", "current", part.label));
       }
     });
     return bar;
@@ -168,8 +176,10 @@
     }
 
     var item = menuItem(resolved.screen);
-    screen.appendChild(el("header", "vhead", "<h1>" + (item ? item.label : "") + "</h1>"));
-    screen.appendChild(el("div", "canvas", "<span>écran à construire</span>"));
+    var vhead = el("header", "vhead");
+    vhead.appendChild(elText("h1", null, item ? item.label : ""));
+    screen.appendChild(vhead);
+    screen.appendChild(elText("div", "canvas", "écran à construire"));
   }
 
   function route() {

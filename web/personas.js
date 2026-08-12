@@ -5,10 +5,18 @@
 (function () {
   "use strict";
 
-  function el(tag, cls, html) {
+  function el(tag, cls) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
-    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  // Tout texte issu des données passe par textContent : un libellé métier
+  // contient couramment un « < » (« si le montant < 1000 € ») qui casserait le
+  // rendu en innerHTML — et personne ne veut d'un balisage injecté par la donnée.
+  function elText(tag, cls, text) {
+    var e = el(tag, cls);
+    e.textContent = text;
     return e;
   }
 
@@ -36,9 +44,9 @@
     var sec = el("section", "pmap");
 
     var pcol = el("div", "col-persona");
-    var pnode = el("div", "node persona",
-      '<span class="ico">' + (persona.icon || "") + "</span>" +
-      '<span class="lbl">' + persona.name + "</span>");
+    var pnode = el("div", "node persona");
+    pnode.appendChild(elText("span", "ico", persona.icon || ""));
+    pnode.appendChild(elText("span", "lbl", persona.name));
     pcol.appendChild(pnode);
     sec.appendChild(pcol);
 
@@ -47,15 +55,15 @@
       var row = el("div", "fam-row");
       row.style.setProperty("--fam", famColor(f.group, f.index));
 
-      var fnode = el("div", "node fam",
-        '<span class="ico">' + (f.group.icon || "") + "</span>" +
-        '<span class="lbl">' + f.group.name + "</span>" +
-        '<span class="cnt">' + f.ucs.length + "</span>");
+      var fnode = el("div", "node fam");
+      fnode.appendChild(elText("span", "ico", f.group.icon || ""));
+      fnode.appendChild(elText("span", "lbl", f.group.name));
+      fnode.appendChild(elText("span", "cnt", String(f.ucs.length)));
       row.appendChild(fnode);
 
       var ucol = el("div", "col-ucs");
       f.ucs.forEach(function (uc) {
-        var b = el("button", "node uc" + (uc.status === "draft" ? " draft" : ""), uc.title);
+        var b = elText("button", "node uc" + (uc.status === "draft" ? " draft" : ""), uc.title);
         b.addEventListener("click", function () { location.hash = "#/uc/" + uc.id; });
         ucol.appendChild(b);
       });
@@ -124,12 +132,12 @@
     var d = data();
     var only = personaId ? findPersona(personaId) : null;
 
-    host.appendChild(el("header", "vhead",
-      "<h1>" + (only ? only.name : "Personas") + "</h1>" +
-      '<p class="sub">' + (only
-        ? (only.description || "Ses cas d'usage, par famille.")
-        : "Qui utilise " + (d.project.name || "l'application") + ", et pour quoi faire.") +
-      "</p>"));
+    var vhead = el("header", "vhead");
+    vhead.appendChild(elText("h1", null, only ? only.name : "Personas"));
+    vhead.appendChild(elText("p", "sub", only
+      ? (only.description || "Ses cas d'usage, par famille.")
+      : "Qui utilise " + (d.project.name || "l'application") + ", et pour quoi faire."));
+    host.appendChild(vhead);
 
     var wrap = el("div", "pmaps");
     (only ? [only] : d.personas || []).forEach(function (p) {

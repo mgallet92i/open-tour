@@ -22,6 +22,17 @@ assert.deepStrictEqual(links, ["tokens.css", "shell.css"]);
 assert.ok(/<aside id="nav">/.test(html), "hôte sidebar #nav manquant");
 assert.ok(/<main id="view">/.test(html), "hôte principal #view manquant");
 
+// Invariant : aucun texte issu des données ne part en innerHTML. Seul le vidage
+// d'un hôte (`innerHTML = ""`) est toléré. Un libellé métier contient couramment
+// un « < » (« si le montant < 1000 € ») qui casserait le rendu, et la donnée ne
+// doit jamais pouvoir injecter du balisage.
+["nav.js", "personas.js", "usecase.js", "step.js", "code.js"].forEach((f) => {
+  const src = fs.readFileSync(path.join(__dirname, f), "utf8");
+  [...src.matchAll(/innerHTML\s*=\s*([^;]+);/g)].forEach((m) => {
+    assert.strictEqual(m[1].trim(), '""', f + " : innerHTML autre que le vidage d'hôte -> utiliser textContent");
+  });
+});
+
 // Boot simulé (DOM factice) : aucune exception, sidebar et vue peuplées sur hash vide.
 class FakeEl {
   constructor(tag) {
@@ -108,4 +119,4 @@ const fams = familiesOf(p0);
 assert.ok(fams.length > 0, "le premier persona doit avoir au moins une famille");
 assert.ok(fams.every((f) => f.ucs.every((u) => u.persona === p0)), "fuite d'un cas d'usage entre personas");
 
-console.log("OK : 25/25 assertions shell (index.html + nav.js + personas.js + usecase.js) PASS");
+console.log("OK : 26/26 assertions shell (index.html + nav.js + personas.js + usecase.js) PASS");

@@ -6,10 +6,17 @@
 (function () {
   "use strict";
 
-  function el(tag, cls, html) {
+  function el(tag, cls) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
-    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  // Texte issu des données -> textContent (un « < » dans une règle métier
+  // casserait le rendu en innerHTML).
+  function elText(tag, cls, text) {
+    var e = el(tag, cls);
+    e.textContent = text;
     return e;
   }
 
@@ -32,33 +39,35 @@
 
   function renderEndpoint(kind, label, text) {
     var box = el("div", "endpoint " + kind);
-    box.appendChild(el("div", "elabel", label));
-    box.appendChild(el("div", "etext", text || "—"));
+    box.appendChild(elText("div", "elabel", label));
+    box.appendChild(elText("div", "etext", text || "—"));
     return box;
   }
 
   function renderStep(uc, step, i) {
     var card = el("button", "stepcard");
-    card.appendChild(el("span", "num", String(i + 1)));
+    card.appendChild(elText("span", "num", String(i + 1)));
 
     var body = el("div", "sbody");
-    body.appendChild(el("div", "stitle", step.title));
-    if (step.story) body.appendChild(el("p", "story", step.story));
+    body.appendChild(elText("div", "stitle", step.title));
+    if (step.story) body.appendChild(elText("p", "story", step.story));
     if (step.domain) {
-      body.appendChild(el("div", "rule",
-        '<span class="rlabel">Règle</span><span class="rtext">' + step.domain + "</span>"));
+      var rule = el("div", "rule");
+      rule.appendChild(elText("span", "rlabel", "Règle"));
+      rule.appendChild(elText("span", "rtext", step.domain));
+      body.appendChild(rule);
     }
 
     var meta = el("div", "smeta");
     var mods = moduleCount(step);
-    if (mods) meta.appendChild(el("span", "chip", mods + " module" + (mods > 1 ? "s" : "")));
+    if (mods) meta.appendChild(elText("span", "chip", mods + " module" + (mods > 1 ? "s" : "")));
     var tests = (step.tests || []).length;
-    meta.appendChild(el("span", "chip " + (tests ? "ok" : "none"),
+    meta.appendChild(elText("span", "chip " + (tests ? "ok" : "none"),
       tests ? "✓ " + tests + " test" + (tests > 1 ? "s" : "") : "aucun test"));
     body.appendChild(meta);
 
     card.appendChild(body);
-    card.appendChild(el("span", "go", "→"));
+    card.appendChild(elText("span", "go", "→"));
     card.addEventListener("click", function () {
       location.hash = "#/uc/" + uc.id + "/step/" + i;
     });
@@ -68,8 +77,8 @@
   // OT.usecase.render(host, uc)
   function render(host, uc) {
     var head = el("header", "vhead");
-    head.appendChild(el("h1", null, uc.title));
-    if (uc.intent) head.appendChild(el("p", "sub", uc.intent));
+    head.appendChild(elText("h1", null, uc.title));
+    if (uc.intent) head.appendChild(elText("p", "sub", uc.intent));
     host.appendChild(head);
 
     var flow = el("div", "flow");

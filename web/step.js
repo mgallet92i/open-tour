@@ -5,10 +5,9 @@
 (function () {
   "use strict";
 
-  function el(tag, cls, html) {
+  function el(tag, cls) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
-    if (html !== undefined) e.innerHTML = html;
     return e;
   }
 
