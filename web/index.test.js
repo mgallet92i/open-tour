@@ -1,4 +1,4 @@
-// Self-check node : wiring index.html (TF-024) + boot file:// sans crash.
+// Self-check node : wiring index.html + boot du shell sans crash.
 // Pas de framework — assert stdlib. Usage : node web/index.test.js
 "use strict";
 const assert = require("assert");
@@ -8,54 +8,135 @@ const vm = require("vm");
 
 const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 
-// TF-024 : zéro dépendance runtime / CDN — aucune ressource http(s) distante, pas d'ES module.
+// Zéro dépendance runtime / CDN — aucune ressource http(s) distante, pas d'ES module.
 assert.strictEqual((html.match(/(src|href)=["'](https?:)?\/\//g) || []).length, 0);
 assert.strictEqual(/type=["']module["']/.test(html), false);
 
-// Ordre des scripts classiques (design.md §6) : data -> drilldown -> screens -> router (boot).
+// Ordre des scripts classiques : data (données) -> écrans -> nav (routing + boot).
 const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-assert.deepStrictEqual(scripts, ["data.js", "drilldown.js", "screens.js", "router.js"]);
+assert.deepStrictEqual(scripts, ["data.js", "personas.js", "usecase.js", "code.js", "step.js", "nav.js"]);
 
-// tokens.css + app.css en <link>, host #app présent.
-const links = [...html.matchAll(/<link[^>]*href="([^"]+)"/g)].map((m) => m[1]);
-assert.deepStrictEqual(links, ["tokens.css", "app.css"]);
-assert.ok(/<main id="app">/.test(html));
+// Feuilles de style et hôtes du shell.
+const links = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
+assert.deepStrictEqual(links, ["tokens.css", "shell.css"]);
+assert.ok(/<aside id="nav">/.test(html), "hôte sidebar #nav manquant");
+assert.ok(/<main id="view">/.test(html), "hôte principal #view manquant");
 
-// Boot file:// simulé (DOM minimal) : aucune exception, écran rendu sur hash vide (fallback plan).
+// Invariant : aucun texte issu des données ne part en innerHTML. Seul le vidage
+// d'un hôte (`innerHTML = ""`) est toléré. Un libellé métier contient couramment
+// un « < » (« si le montant < 1000 € ») qui casserait le rendu, et la donnée ne
+// doit jamais pouvoir injecter du balisage.
+["nav.js", "personas.js", "usecase.js", "step.js", "code.js"].forEach((f) => {
+  const src = fs.readFileSync(path.join(__dirname, f), "utf8");
+  [...src.matchAll(/innerHTML\s*=\s*([^;]+);/g)].forEach((m) => {
+    assert.strictEqual(m[1].trim(), '""', f + " : innerHTML autre que le vidage d'hôte -> utiliser textContent");
+  });
+});
+
+// Boot simulé (DOM factice) : aucune exception, sidebar et vue peuplées sur hash vide.
 class FakeEl {
   constructor(tag) {
     this.tagName = tag;
     this.children = [];
     this.style = { setProperty() {} };
     this._html = "";
-    this.classList = { add() {}, remove() {}, contains() { return false; } };
+    this.textContent = "";
+    this.value = "";
   }
-  set innerHTML(v) { this._html = v; }
+  set innerHTML(v) { this._html = v; if (v === "") this.children = []; }
   get innerHTML() { return this._html; }
   appendChild(c) { this.children.push(c); return c; }
-  append(...c) { c.forEach((x) => this.children.push(x)); }
-  querySelector() { return null; }
+  querySelector() { return new FakeEl("div"); }
   querySelectorAll() { return []; }
+  getBoundingClientRect() { return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 }; }
   addEventListener() {}
   setAttribute() {}
 }
-const appEl = new FakeEl("main");
+const hosts = { nav: new FakeEl("aside"), view: new FakeEl("main") };
+const menus = new FakeEl("nav");
 const doc = {
-  getElementById: (id) => (id === "app" ? appEl : null),
-  querySelector: () => null,
+  getElementById: (id) => hosts[id] || null,
+  querySelector: (sel) => (sel === "#nav .menus" ? menus : new FakeEl("div")),
   createElement: (t) => new FakeEl(t),
+  createElementNS: (ns, t) => new FakeEl(t),
   createTextNode: (t) => ({ text: t }),
   addEventListener: () => {},
 };
 const win = {
   addEventListener: (evt, fn) => { if (evt === "load") win._load = fn; },
+  removeEventListener: () => {},
   requestAnimationFrame: (fn) => fn(),
+  getComputedStyle: () => ({ getPropertyValue: () => "#000" }),
   location: { hash: "" },
 };
-const sandbox = { window: win, document: doc, location: win.location, requestAnimationFrame: win.requestAnimationFrame };
+const sandbox = {
+  window: win,
+  document: doc,
+  location: win.location,
+  requestAnimationFrame: win.requestAnimationFrame,
+  getComputedStyle: win.getComputedStyle,
+};
 vm.createContext(sandbox);
 scripts.forEach((f) => vm.runInContext(fs.readFileSync(path.join(__dirname, f === "data.js" ? "data.fixture.js" : f), "utf8"), sandbox));
 assert.doesNotThrow(() => sandbox.window._load());
-assert.ok(appEl.children.length > 0, "l'écran plan doit se rendre sur hash vide (fallback INV-004)");
+assert.ok(menus.children.length > 0, "la sidebar doit rendre ses sections de menu");
+assert.ok(hosts.view.children.length > 0, "la vue doit rendre l'écran Persona sur hash vide");
 
-console.log("OK : 7/7 assertions index.html wiring PASS");
+// parse() : hash inconnu -> écran Persona ; hash valide -> écran ciblé.
+const { parse } = sandbox.window.OT.nav;
+// (les objets viennent du realm vm : comparer les valeurs, pas les prototypes)
+assert.strictEqual(parse("#/n-importe-quoi").screen, "personas");
+assert.strictEqual(parse("#/uc/inconnu").screen, "personas");
+assert.strictEqual(parse("#/archi").screen, "archi");
+const firstUc = sandbox.window.OPENTOUR_DATA.usecases.usecases[0].id;
+assert.strictEqual(parse("#/uc/" + firstUc).screen, "usecase");
+assert.strictEqual(parse("#/uc/" + firstUc).ucId, firstUc);
+
+// trail() : le dernier segment est toujours la page courante, jamais un lien.
+const { trail } = sandbox.window.OT.nav;
+const tUc = trail(parse("#/uc/" + sandbox.window.OPENTOUR_DATA.usecases.usecases[0].id));
+assert.strictEqual(tUc.length, 3, "fil d'Ariane d'un cas d'usage : Personas > persona > titre");
+assert.ok(tUc.slice(0, -1).every((p) => p.hash), "tout segment sauf le dernier doit être cliquable");
+assert.strictEqual(tUc[tUc.length - 1].hash, undefined, "le segment courant ne doit pas être un lien");
+assert.strictEqual(trail(parse("#/personas")).length, 1);
+
+// Route étape : index valide -> écran step ; index hors bornes -> retour au use case.
+const ucWithSteps = sandbox.window.OPENTOUR_DATA.usecases.usecases.find((u) => u.steps.length > 0);
+if (ucWithSteps) {
+  const rStep = parse("#/uc/" + ucWithSteps.id + "/step/0");
+  assert.strictEqual(rStep.screen, "step");
+  assert.strictEqual(rStep.stepIdx, 0);
+  assert.strictEqual(parse("#/uc/" + ucWithSteps.id + "/step/99").screen, "usecase");
+  const tStep = trail(rStep);
+  assert.strictEqual(tStep.length, 4, "fil d'Ariane d'une étape : Personas > persona > uc > étape");
+  assert.ok(tStep.slice(0, -1).every((p) => p.hash), "seul le segment courant est sans lien");
+}
+
+// `steps` absent/null : normalisé au boot, aucun écran ne doit tomber.
+// (constat MAJEUR GPT-5.6 : uc.steps.forEach levait un TypeError)
+const D = sandbox.window.OPENTOUR_DATA.usecases;
+D.usecases.push({ id: "uc-sans-steps", persona: D.personas[0].id, group: "inconnu", title: "Sans étapes", steps: null });
+sandbox.window._load();
+assert.ok(Array.isArray(D.usecases[D.usecases.length - 1].steps), "steps doit être normalisé en tableau");
+sandbox.location.hash = "#/uc/uc-sans-steps";
+assert.doesNotThrow(() => sandbox.window.OT.nav.route(), "l'écran d'un use case sans étapes ne doit pas tomber");
+assert.strictEqual(parse("#/uc/uc-sans-steps/step/0").screen, "usecase", "index d'étape hors bornes -> use case");
+
+// Un cas d'usage dont le `group` ne correspond à rien reste visible dans une
+// famille de repli (constat MAJEUR GPT-5.6 : disparition silencieuse).
+const orphanFams = sandbox.window.OT.personas.familiesOf(D.personas[0].id);
+assert.ok(
+  orphanFams.some((f) => f.ucs.some((u) => u.id === "uc-sans-steps")),
+  "un cas d'usage sans famille connue doit apparaitre dans une famille de repli"
+);
+sandbox.location.hash = "";
+D.usecases.pop();
+
+// familiesOf() : un persona ne remonte que ses propres cas d'usage.
+const { familiesOf } = sandbox.window.OT.personas;
+const p0 = sandbox.window.OPENTOUR_DATA.usecases.personas[0].id;
+const fams = familiesOf(p0);
+assert.ok(fams.length > 0, "le premier persona doit avoir au moins une famille");
+assert.ok(fams.every((f) => f.ucs.every((u) => u.persona === p0)), "fuite d'un cas d'usage entre personas");
+
+console.log("OK : 31/31 assertions shell (index.html + nav.js + personas.js + usecase.js) PASS");

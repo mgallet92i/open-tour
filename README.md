@@ -13,7 +13,7 @@ Le repo open-tour est **générique** : tout le contenu projet vit dans le repo 
 - `<project>/.open-tour/usecases/` — un fichier markdown par entité (OKF) : `index.md` (projet), `personas/*.md`, `groups/*.md`, `<id>.md` par use case (frontmatter plat + scénario Gherkin fr)
 - `tools/build_data.py <project-root>` — fusionne `usecases/` + `knowledge-graph.json` → `<project>/.open-tour/data.js`
 - `tools/gen_usecases.py <project-root>` — génère des brouillons `status: draft` dans `usecases/` depuis le knowledge-graph (candidats non couverts) via le CLI `claude`
-- `web/index.html` — page statique zéro dépendance (stepper fonctionnel, drill-down 3 niveaux)
+- `web/index.html` — page statique zéro dépendance : shell sidebar (menus Business / Technique) + 3 écrans — **Personas** (mind map persona → famille → cas d'usage), **Use case** (logigramme séquentiel des étapes), **Étape** (modules, symboles, règles de gestion, code source coloré en ligne)
 
 Lancer : `python tools/build_data.py <project-root> && python tools/serve.py <project-root>` (sert le viewer `web/` + le `data.js` du projet + endpoint `/src` de lazy loading du code source local) puis http://127.0.0.1:8642/
 
@@ -28,9 +28,11 @@ CodeGraph (`npm i -g @colbymchenry/codegraph`) est un **prérequis d'exécution*
 ## Tests
 
 ```bash
-python -m pytest pipeline tools   # unitaires
-npm run test:e2e                  # Playwright (web/)
+python -m pytest pipeline tools                                        # unitaires Python
+for t in index code; do node web/$t.test.js; done                       # web (self-checks Node)
 ```
+
+(`npm run test:e2e` est inopérant en l'état — `playwright.config.ts` référence un `e2e/` absent du repo.)
 
 ## Prérequis d'un projet cible (contrat d'entrée, version industrialisée)
 

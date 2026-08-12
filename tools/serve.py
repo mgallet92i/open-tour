@@ -23,6 +23,13 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "web"), **kwargs)
 
+    def end_headers(self):
+        # Serveur de dev : jamais de cache. Sans ça, une modif de shell.css ou
+        # nav.js reste invisible au rechargement (le ?v= du HTML ne casse pas
+        # le cache des ressources liées) — on debugge alors l'ancien code.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_GET(self):
         url = urlparse(self.path)
         if url.path == "/data.js":
@@ -40,7 +47,11 @@ class Handler(SimpleHTTPRequestHandler):
             return super().do_GET()
         rel = parse_qs(url.query).get("path", [""])[0]
         target = (SRC_ROOT / rel).resolve()
-        if not str(target).startswith(str(SRC_ROOT.resolve())) or not target.is_file():
+        # is_relative_to, pas un test de prefixe de chaine : `startswith` laisse
+        # passer un repertoire VOISIN dont le nom commence pareil — pour une
+        # racine `.../CV_MATCHER`, le chemin `../CV_MATCHER_prive/secret.txt`
+        # resolvait en dehors et etait servi malgre tout.
+        if not target.is_relative_to(SRC_ROOT.resolve()) or not target.is_file():
             self.send_error(404, "fichier hors racine ou introuvable")
             return
         body = json.dumps(
