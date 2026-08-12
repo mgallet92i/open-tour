@@ -65,9 +65,15 @@ def load_usecases(root: Path) -> dict:
 
     usecases = []
     for path in sorted(root.glob("*.md")):
-        if path.name == "index.md":
-            continue
         fm, body = _usecase_md.parse_frontmatter(path.read_text(encoding="utf-8"))
+        # OKF : c'est le `type` du frontmatter qui décide, pas le nom du fichier.
+        # `usecases/` héberge aussi l'index projet (type: project) et des fiches
+        # d'un autre type — côté SWIPE, `cv-matcher.md` est une fiche
+        # `type: integration` qui décrit la configuration Salesforce d'une
+        # intégration : légitimement sans `persona`. Filtrer par nom faisait
+        # planter tout le build en KeyError sur ces fiches.
+        if fm.get("type") != "usecase":
+            continue
         parsed = _usecase_md.parse_usecase_body(body)
         usecases.append({
             "id": fm["id"], "persona": fm["persona"], "group": fm["group"],

@@ -98,6 +98,34 @@ def _write_fixture(root: Path) -> None:
     (root / "gen-rapport-trimestriel.md").write_text(STUB_MD, encoding="utf-8")
 
 
+INTEGRATION_MD = """---
+type: integration
+id: cv-matcher
+group: integrations
+status: published
+title: Matching de CV sur les besoins clients
+---
+
+# Intention
+Fiche d'intégration : décrit une configuration, pas un parcours porté par un persona.
+Elle n'a donc pas de champ `persona` — et ne doit pas faire tomber le build.
+"""
+
+
+def test_load_usecases_ignore_les_fiches_dun_autre_type():
+    """Une fiche `type: integration` (cas réel côté SWIPE : cv-matcher.md) vit dans
+    usecases/ sans `persona`. Le chargement doit l'ignorer, pas lever un KeyError."""
+    with TemporaryDirectory() as td:
+        root = Path(td) / ".open-tour" / "usecases"
+        _write_fixture(root)
+        (root / "cv-matcher.md").write_text(INTEGRATION_MD, encoding="utf-8")
+        data = load_usecases(root)
+
+    ids = [uc["id"] for uc in data["usecases"]]
+    assert "cv-matcher" not in ids, "une fiche non-usecase ne doit pas entrer dans usecases[]"
+    assert len(data["usecases"]) == 2, "les cas d'usage réels restent chargés"
+
+
 def test_load_usecases_reconstructs_expected_dict():
     with TemporaryDirectory() as td:
         root = Path(td) / ".open-tour" / "usecases"
