@@ -164,6 +164,225 @@ body {
   color: var(--ot-muted);
 }
 
+/* ---------- Écran technique d'une étape ---------- */
+
+#view .rules {
+  margin-bottom: 16px;
+  padding: 11px 16px;
+  border-radius: var(--ot-radius-md);
+  background: var(--ot-domain-bg);
+}
+
+#view .rules .own { display: flex; gap: 12px; align-items: baseline; line-height: 1.5; }
+
+#view .rules .rlabel {
+  flex: none;
+  color: var(--ot-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+#view .rules .more { margin-top: 8px; }
+
+#view .rules summary {
+  cursor: pointer;
+  color: var(--ot-muted);
+  font-size: 12px;
+}
+
+#view .rules summary:hover { color: var(--ot-accent); }
+
+#view .rules .rlist { margin: 8px 0 0; padding: 0; list-style: none; }
+
+#view .rules .rlist li {
+  display: flex;
+  gap: 10px;
+  padding: 3px 0;
+  line-height: 1.5;
+}
+
+#view .rules .rlist .src {
+  flex: 0 0 190px;
+  color: var(--ot-muted);
+  font-family: var(--ot-font-mono);
+  font-size: 11px;
+  text-align: right;
+  padding-top: 2px;
+  overflow-wrap: anywhere;
+}
+
+#view .rules .rlist .own .src { color: var(--ot-accent); font-family: var(--ot-font-sans); font-weight: 600; }
+
+.tech {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  min-height: 66vh;         /* le code reste utilisable même si les règles occupent le haut */
+  align-items: stretch;
+}
+
+.tech .modpane {
+  flex: 0 0 330px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tech .plabel,
+.tech .empty {
+  color: var(--ot-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 0 0 8px;
+}
+
+.tech .empty { text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+.tech .mod {
+  margin-bottom: 8px;
+  border: 1px solid var(--ot-line);
+  border-radius: var(--ot-radius-md);
+  background: var(--ot-card);
+  overflow: hidden;
+}
+
+.tech .mod.active { border-color: var(--ot-code); }
+
+.tech .mhead {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tech .mod.active .mhead { background: var(--ot-code-tint); }
+.tech .mhead:hover { background: var(--ot-paper-alt); }
+.tech .mtitle { font-weight: 600; font-size: 13px; }
+
+.tech .mpath {
+  margin-top: 2px;
+  color: var(--ot-code);
+  font-family: var(--ot-font-mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.tech .msum { margin-top: 4px; color: var(--ot-muted); font-size: 12px; line-height: 1.4; }
+
+.tech .symlist {
+  margin: 0;
+  padding: 4px 0 6px;
+  list-style: none;
+  border-top: 1px solid var(--ot-line);
+}
+
+.tech .sym {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 12px 5px 14px;
+  border: 0;
+  border-left: 3px solid transparent;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tech .sym:hover { background: var(--ot-paper-alt); }
+.tech .sym.active { border-left-color: var(--ot-code); background: var(--ot-code-tint); font-weight: 600; }
+
+.tech .sym .kind {
+  flex: none;
+  padding: 0 6px;
+  border-radius: var(--ot-radius-pill);
+  background: var(--ot-paper-alt);
+  color: var(--ot-muted);
+  font-size: 10px;
+  font-family: var(--ot-font-mono);
+}
+
+.tech .sym .kind.class { background: var(--ot-accent-tint); color: var(--ot-accent); }
+.tech .sym .sname { overflow-wrap: anywhere; }
+
+.tech .codepane { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.tech .cplaceholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--ot-line);
+  border-radius: var(--ot-radius-card);
+  color: var(--ot-muted);
+}
+
+/* Visualiseur de code (OT.code) — thème sombre, façon lecteur de dépôt. */
+.codeview {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-radius: var(--ot-radius-md);
+  background: var(--ot-codebox-bg);
+  overflow: hidden;
+}
+
+.codeview .cbar {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--ot-codebox-line);
+  color: var(--ot-codebox-title);
+  font-family: var(--ot-font-mono);
+  font-size: 12px;
+}
+
+.codeview .cbar .crange { color: var(--ot-codebox-ln); }
+.codeview .cscroll { flex: 1; min-height: 0; overflow: auto; }
+.codeview .cempty { padding: 18px; color: var(--ot-codebox-fg); }
+
+.codeview pre {
+  margin: 0;
+  padding: 8px 0 14px;
+  font-family: var(--ot-font-mono);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ot-codebox-fg);
+}
+
+.codeview .cl { display: flex; white-space: pre; }
+.codeview .cl.hi { background: var(--ot-codebox-hi-bg); }
+
+.codeview .ln {
+  flex: 0 0 52px;
+  padding-right: 14px;
+  text-align: right;
+  color: var(--ot-codebox-ln);
+  user-select: none;
+}
+
+.codeview .cl.hi .ln { color: var(--ot-codebox-hi-ln); }
+.codeview .ct { padding-right: 18px; }
+
+.codeview .t-com { color: #7f9aa5; font-style: italic; }
+.codeview .t-str { color: #d99a6c; }
+.codeview .t-num { color: #cdb06a; }
+.codeview .t-kw { color: #8fbce6; }
+
 /* ---------- Écran Use case : logigramme vertical ---------- */
 
 .flow {

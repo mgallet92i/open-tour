@@ -161,15 +161,7 @@
     }
 
     if (resolved.screen === "step") {
-      var ucS = findUc(resolved.ucId);
-      var step = ucS.steps[resolved.stepIdx];
-      var h = el("header", "vhead");
-      h.appendChild(el("h1", null, step.title));
-      if (step.story) h.appendChild(el("p", "sub", step.story));
-      screen.appendChild(h);
-      // ponytail: écran technique (modules, fonctions, code source) = itération suivante.
-      screen.appendChild(el("div", "canvas",
-        "<span>vue technique de l'étape — " + (step.nodes || []).length + " nœud(s) du graphe — à construire</span>"));
+      window.OT.step.render(screen, findUc(resolved.ucId), resolved.stepIdx);
       return;
     }
 

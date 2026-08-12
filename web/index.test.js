@@ -14,7 +14,7 @@ assert.strictEqual(/type=["']module["']/.test(html), false);
 
 // Ordre des scripts classiques : data (données) -> écrans -> nav (routing + boot).
 const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-assert.deepStrictEqual(scripts, ["data.js", "personas.js", "usecase.js", "nav.js"]);
+assert.deepStrictEqual(scripts, ["data.js", "personas.js", "usecase.js", "code.js", "step.js", "nav.js"]);
 
 // Feuilles de style et hôtes du shell.
 const links = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
