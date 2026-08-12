@@ -32,6 +32,7 @@
       items: [
         { id: "data-model", label: "Modèle de données", hash: "#/data-model", icon: "🗄", soon: true },
         { id: "archi", label: "Architecture logicielle", hash: "#/archi", icon: "🏗", soon: true },
+        { id: "infra", label: "Architecture technique", hash: "#/infra", icon: "☁", soon: true },
         { id: "modules", label: "Modules & règles de gestion", hash: "#/modules", icon: "⚙", soon: true },
         { id: "docs", label: "Documents techniques", hash: "#/docs", icon: "📄", soon: true },
       ],
