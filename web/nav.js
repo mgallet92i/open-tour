@@ -41,6 +41,16 @@
   // parse(hash) -> { screen, ucId?, personaId? }. Tout hash inconnu retombe sur l'écran Persona.
   function parse(hash) {
     var h = (hash || "").replace(/^#/, "");
+    var mStep = h.match(/^\/uc\/([^/]+)\/step\/(\d+)$/);
+    if (mStep) {
+      var ucS = findUc(mStep[1]);
+      var idx = parseInt(mStep[2], 10);
+      if (ucS && idx >= 0 && idx < ucS.steps.length) {
+        return { screen: "step", ucId: ucS.id, stepIdx: idx };
+      }
+      if (ucS) return { screen: "usecase", ucId: ucS.id };
+    }
+
     var mUc = h.match(/^\/uc\/([^/]+)$/);
     if (mUc && findUc(mUc[1])) return { screen: "usecase", ucId: mUc[1] };
 
@@ -57,7 +67,7 @@
 
   // L'écran d'un use case appartient au menu Business > Personas (fil de navigation).
   function activeMenu(resolved) {
-    return resolved.screen === "usecase" ? "personas" : resolved.screen;
+    return (resolved.screen === "usecase" || resolved.screen === "step") ? "personas" : resolved.screen;
   }
 
   function renderMenus(active) {
@@ -98,12 +108,17 @@
         : [{ label: "Personas" }];
     }
 
-    if (resolved.screen === "usecase") {
+    if (resolved.screen === "usecase" || resolved.screen === "step") {
       var uc = findUc(resolved.ucId);
       var parts = [{ label: "Personas", hash: "#/personas" }];
       var p = window.OT.personas.findPersona(uc.persona);
       if (p) parts.push({ label: p.name, hash: "#/personas/" + p.id });
-      parts.push({ label: uc.title });
+      if (resolved.screen === "step") {
+        parts.push({ label: uc.title, hash: "#/uc/" + uc.id });
+        parts.push({ label: uc.steps[resolved.stepIdx].title });
+      } else {
+        parts.push({ label: uc.title });
+      }
       return parts;
     }
 
@@ -141,13 +156,20 @@
     }
 
     if (resolved.screen === "usecase") {
-      var uc = findUc(resolved.ucId);
-      var head = el("header", "vhead");
-      head.appendChild(el("h1", null, uc.title));
-      if (uc.intent) head.appendChild(el("p", "sub", uc.intent));
-      screen.appendChild(head);
-      // ponytail: écran Use case (logigramme des steps) = prochaine itération d'atelier.
-      screen.appendChild(el("div", "canvas", "<span>logigramme des " + uc.steps.length + " étapes — à construire</span>"));
+      window.OT.usecase.render(screen, findUc(resolved.ucId));
+      return;
+    }
+
+    if (resolved.screen === "step") {
+      var ucS = findUc(resolved.ucId);
+      var step = ucS.steps[resolved.stepIdx];
+      var h = el("header", "vhead");
+      h.appendChild(el("h1", null, step.title));
+      if (step.story) h.appendChild(el("p", "sub", step.story));
+      screen.appendChild(h);
+      // ponytail: écran technique (modules, fonctions, code source) = itération suivante.
+      screen.appendChild(el("div", "canvas",
+        "<span>vue technique de l'étape — " + (step.nodes || []).length + " nœud(s) du graphe — à construire</span>"));
       return;
     }
 

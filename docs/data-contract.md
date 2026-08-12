@@ -52,8 +52,24 @@ window.OPENTOUR_DATA = { "usecases": {...}, "graph": {...} };
 | `usecases[].group` | string | FK → `groups[].id` (NOUVEAU, EX-015) |
 | `usecases[].status` | `"draft"` \| `"validated"` | Curation humaine (NOUVEAU, EX-002/005) — `draft` tant qu'un humain n'a pas relu |
 | `usecases[].scenario` | string \| null | Bloc Gherkin fr brut (`# language: fr`), `null` pour un stub sans étapes (NOUVEAU, EX-003) |
-| `usecases[].steps[].nodes[]` | string[] | Ids de nodes du graphe référencés par l'étape |
-| `usecases[].steps[].tests[]` | string[] | Ids de nodes de test référencés (optionnel) |
+| `usecases[].steps[]` | array | Étapes du parcours — **liste plate ordonnée, sans branchement** (voir ci-dessous) |
+
+### `usecases[].steps[]` (une étape du parcours)
+
+| Champ | Type | Description |
+|---|---|---|
+| `id` | string | Identifiant de l'étape |
+| `title` | string | Intitulé de l'étape (nœud du logigramme) |
+| `story` | string | Récit fonctionnel de ce qui se passe à cette étape |
+| `domain` | string | **Règle de gestion** portée par l'étape (fr) |
+| `nodes[]` | string[] | Ids de nodes du graphe référencés par l'étape |
+| `tests[]` | string[] | Ids de nodes de test référencés (optionnel) |
+
+⚠️ **Aucune information de branchement.** `steps[]` est une séquence linéaire : pas de
+condition, pas de chemin alternatif, pas de boucle. L'écran Use case rend donc un
+logigramme **séquentiel** (`web/usecase.js`). Dessiner des losanges de décision
+exigerait d'abord d'extraire les branches en amont (Gherkin, call-graph, ou
+`decisions` des Flows Salesforce) — chantier pipeline, pas chantier UI.
 
 ### `groups[]` (NOUVEAU, EX-015)
 
