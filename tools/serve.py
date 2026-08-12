@@ -23,6 +23,13 @@ class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "web"), **kwargs)
 
+    def end_headers(self):
+        # Serveur de dev : jamais de cache. Sans ça, une modif de shell.css ou
+        # nav.js reste invisible au rechargement (le ?v= du HTML ne casse pas
+        # le cache des ressources liées) — on debugge alors l'ancien code.
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
     def do_GET(self):
         url = urlparse(self.path)
         if url.path == "/data.js":

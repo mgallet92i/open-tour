@@ -131,12 +131,14 @@ body {
 #view .crumbs .sep { color: var(--ot-line); }
 #view .crumbs .current { color: var(--ot-ink); font-weight: 600; padding: 2px 4px; }
 
-/* Hôte d'écran : occupe tout l'espace restant. */
+/* Hôte d'écran : occupe au moins l'espace restant, et grandit avec son contenu.
+   `flex: 1 0 auto` sans `min-height: 0` — sinon l'item se dimensionne sur la
+   hauteur du conteneur de scroll, le contenu déborde et le padding bas est
+   perdu (dernière carte collée au bord de l'écran). */
 #view .screen {
-  flex: 1;
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  min-height: 0;
   padding: 22px 28px 28px;
 }
 
