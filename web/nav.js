@@ -115,7 +115,7 @@
     var bar = el("nav", "crumbs");
     bar.setAttribute("aria-label", "Fil d'Ariane");
     trail(resolved).forEach(function (part, i, all) {
-      if (i > 0) bar.appendChild(el("span", "sep", "›"));
+      if (i > 0) bar.appendChild(el("span", "sep", "&gt;"));
       if (part.hash && i < all.length - 1) {
         var a = el("a", null, part.label);
         a.href = part.hash;
