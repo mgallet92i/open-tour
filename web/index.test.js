@@ -1,4 +1,4 @@
-// Self-check node : wiring index.html (TF-024) + boot file:// sans crash.
+// Self-check node : wiring index.html + boot du shell sans crash.
 // Pas de framework — assert stdlib. Usage : node web/index.test.js
 "use strict";
 const assert = require("assert");
@@ -8,41 +8,42 @@ const vm = require("vm");
 
 const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 
-// TF-024 : zéro dépendance runtime / CDN — aucune ressource http(s) distante, pas d'ES module.
+// Zéro dépendance runtime / CDN — aucune ressource http(s) distante, pas d'ES module.
 assert.strictEqual((html.match(/(src|href)=["'](https?:)?\/\//g) || []).length, 0);
 assert.strictEqual(/type=["']module["']/.test(html), false);
 
-// Ordre des scripts classiques (design.md §6) : data -> drilldown -> screens -> router (boot).
+// Ordre des scripts classiques : data (données) -> nav (boot).
 const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-assert.deepStrictEqual(scripts, ["data.js", "drilldown.js", "screens.js", "router.js"]);
+assert.deepStrictEqual(scripts, ["data.js", "nav.js"]);
 
-// tokens.css + app.css en <link>, host #app présent.
-const links = [...html.matchAll(/<link[^>]*href="([^"]+)"/g)].map((m) => m[1]);
-assert.deepStrictEqual(links, ["tokens.css", "app.css"]);
-assert.ok(/<main id="app">/.test(html));
+// Feuilles de style et hôtes du shell.
+const links = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
+assert.deepStrictEqual(links, ["tokens.css", "shell.css"]);
+assert.ok(/<aside id="nav">/.test(html), "hôte sidebar #nav manquant");
+assert.ok(/<main id="view">/.test(html), "hôte principal #view manquant");
 
-// Boot file:// simulé (DOM minimal) : aucune exception, écran rendu sur hash vide (fallback plan).
+// Boot simulé (DOM factice) : aucune exception, sidebar et vue peuplées sur hash vide.
 class FakeEl {
   constructor(tag) {
     this.tagName = tag;
     this.children = [];
     this.style = { setProperty() {} };
     this._html = "";
-    this.classList = { add() {}, remove() {}, contains() { return false; } };
+    this.textContent = "";
+    this.value = "";
   }
-  set innerHTML(v) { this._html = v; }
+  set innerHTML(v) { this._html = v; if (v === "") this.children = []; }
   get innerHTML() { return this._html; }
   appendChild(c) { this.children.push(c); return c; }
-  append(...c) { c.forEach((x) => this.children.push(x)); }
-  querySelector() { return null; }
-  querySelectorAll() { return []; }
+  querySelector() { return new FakeEl("div"); }
   addEventListener() {}
   setAttribute() {}
 }
-const appEl = new FakeEl("main");
+const hosts = { nav: new FakeEl("aside"), view: new FakeEl("main") };
+const tree = new FakeEl("nav");
 const doc = {
-  getElementById: (id) => (id === "app" ? appEl : null),
-  querySelector: () => null,
+  getElementById: (id) => hosts[id] || null,
+  querySelector: (sel) => (sel === "#nav .tree" ? tree : new FakeEl("div")),
   createElement: (t) => new FakeEl(t),
   createTextNode: (t) => ({ text: t }),
   addEventListener: () => {},
@@ -56,6 +57,15 @@ const sandbox = { window: win, document: doc, location: win.location, requestAni
 vm.createContext(sandbox);
 scripts.forEach((f) => vm.runInContext(fs.readFileSync(path.join(__dirname, f === "data.js" ? "data.fixture.js" : f), "utf8"), sandbox));
 assert.doesNotThrow(() => sandbox.window._load());
-assert.ok(appEl.children.length > 0, "l'écran plan doit se rendre sur hash vide (fallback INV-004)");
+assert.ok(tree.children.length > 0, "la sidebar doit lister au moins un groupe");
+assert.ok(hosts.view.children.length > 0, "la vue doit afficher le placeholder sur hash vide");
 
-console.log("OK : 7/7 assertions index.html wiring PASS");
+// parse() : hash inconnu -> accueil ; hash valide -> ucId.
+const { parse } = sandbox.window.OT.nav;
+// (les objets viennent du realm vm : comparer les valeurs, pas les prototypes)
+assert.strictEqual(parse("#/n-importe-quoi").ucId, undefined);
+assert.strictEqual(parse("#/uc/inconnu").ucId, undefined);
+const firstUc = sandbox.window.OPENTOUR_DATA.usecases.usecases[0].id;
+assert.strictEqual(parse("#/uc/" + firstUc).ucId, firstUc);
+
+console.log("OK : 12/12 assertions shell (index.html + nav.js) PASS");
