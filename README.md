@@ -28,9 +28,11 @@ CodeGraph (`npm i -g @colbymchenry/codegraph`) est un **prérequis d'exécution*
 ## Tests
 
 ```bash
-python -m pytest pipeline tools   # unitaires
-npm run test:e2e                  # Playwright (web/)
+python -m pytest pipeline tools                                        # unitaires Python
+for t in index router screens drilldown; do node web/$t.test.js; done  # web (self-checks Node)
 ```
+
+(`npm run test:e2e` est inopérant en l'état — `playwright.config.ts` référence un `e2e/` absent du repo.)
 
 ## Prérequis d'un projet cible (contrat d'entrée, version industrialisée)
 

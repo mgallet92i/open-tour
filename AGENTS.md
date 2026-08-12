@@ -66,7 +66,11 @@ Prérequis hôte (`check_host_prereqs`) : binaire `codegraph`, Node ≥ 22, et u
 ## Tests
 
 ```bash
-python -m pytest pipeline tools     # unitaires
-npm run test:e2e                    # Playwright (web/)
-python pipeline/_common.py          # self-checks de module (idem build_data.py, drilldown.js…)
+python -m pytest pipeline tools                       # unitaires Python (13)
+for t in index router screens drilldown; do node web/$t.test.js; done   # web (47 assertions)
+python pipeline/_common.py                            # self-checks de module
 ```
+
+Les tests web sont des **self-checks Node sans framework** (`assert` stdlib, DOM factice) — pas de jsdom, pas de runner.
+
+⚠️ `npm run test:e2e` **ne marche pas** : `playwright.config.ts` pointe sur `testDir: ./e2e`, répertoire absent du repo (les specs e2e dépendaient d'un projet interne). Soit écrire les specs, soit retirer la config — ne pas la documenter comme fonctionnelle.
