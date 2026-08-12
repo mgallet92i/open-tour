@@ -38,11 +38,14 @@
     },
   ];
 
-  // parse(hash) -> { screen, ucId? }. Tout hash inconnu retombe sur l'écran Persona.
+  // parse(hash) -> { screen, ucId?, personaId? }. Tout hash inconnu retombe sur l'écran Persona.
   function parse(hash) {
     var h = (hash || "").replace(/^#/, "");
     var mUc = h.match(/^\/uc\/([^/]+)$/);
     if (mUc && findUc(mUc[1])) return { screen: "usecase", ucId: mUc[1] };
+
+    var mP = h.match(/^\/personas\/([^/]+)$/);
+    if (mP && window.OT.personas.findPersona(mP[1])) return { screen: "personas", personaId: mP[1] };
     for (var i = 0; i < MENUS.length; i++) {
       for (var j = 0; j < MENUS[i].items.length; j++) {
         var it = MENUS[i].items[j];
@@ -77,12 +80,63 @@
     });
   }
 
+  function menuItem(id) {
+    var found = null;
+    MENUS.forEach(function (s) {
+      s.items.forEach(function (it) { if (it.id === id) found = it; });
+    });
+    return found;
+  }
+
+  // trail(resolved) -> [{label, hash?}] — le dernier segment est la page courante
+  // (jamais de lien). Un segment n'est cliquable que s'il mène à un écran réel.
+  function trail(resolved) {
+    if (resolved.screen === "personas") {
+      var only = resolved.personaId && window.OT.personas.findPersona(resolved.personaId);
+      return only
+        ? [{ label: "Personas", hash: "#/personas" }, { label: only.name }]
+        : [{ label: "Personas" }];
+    }
+
+    if (resolved.screen === "usecase") {
+      var uc = findUc(resolved.ucId);
+      var parts = [{ label: "Personas", hash: "#/personas" }];
+      var p = window.OT.personas.findPersona(uc.persona);
+      if (p) parts.push({ label: p.name, hash: "#/personas/" + p.id });
+      parts.push({ label: uc.title });
+      return parts;
+    }
+
+    var item = menuItem(resolved.screen);
+    return [{ label: item ? item.label : "" }];
+  }
+
+  function renderCrumbs(resolved) {
+    var bar = el("nav", "crumbs");
+    bar.setAttribute("aria-label", "Fil d'Ariane");
+    trail(resolved).forEach(function (part, i, all) {
+      if (i > 0) bar.appendChild(el("span", "sep", "›"));
+      if (part.hash && i < all.length - 1) {
+        var a = el("a", null, part.label);
+        a.href = part.hash;
+        bar.appendChild(a);
+      } else {
+        bar.appendChild(el("span", "current", part.label));
+      }
+    });
+    return bar;
+  }
+
   function renderView(resolved) {
     var view = document.getElementById("view");
     view.innerHTML = "";
+    view.appendChild(renderCrumbs(resolved));
+
+    var screen = el("div", "screen");
+    view.appendChild(screen);
 
     if (resolved.screen === "personas") {
-      window.OT.personas.render(view);
+      window.OT.personas.render(screen, resolved.personaId);
       return;
     }
 
@@ -91,18 +145,15 @@
       var head = el("header", "vhead");
       head.appendChild(el("h1", null, uc.title));
       if (uc.intent) head.appendChild(el("p", "sub", uc.intent));
-      view.appendChild(head);
+      screen.appendChild(head);
       // ponytail: écran Use case (logigramme des steps) = prochaine itération d'atelier.
-      view.appendChild(el("div", "canvas", "<span>logigramme des " + uc.steps.length + " étapes — à construire</span>"));
+      screen.appendChild(el("div", "canvas", "<span>logigramme des " + uc.steps.length + " étapes — à construire</span>"));
       return;
     }
 
-    var item = null;
-    MENUS.forEach(function (s) {
-      s.items.forEach(function (it) { if (it.id === resolved.screen) item = it; });
-    });
-    view.appendChild(el("header", "vhead", "<h1>" + (item ? item.label : "") + "</h1>"));
-    view.appendChild(el("div", "canvas", "<span>écran à construire</span>"));
+    var item = menuItem(resolved.screen);
+    screen.appendChild(el("header", "vhead", "<h1>" + (item ? item.label : "") + "</h1>"));
+    screen.appendChild(el("div", "canvas", "<span>écran à construire</span>"));
   }
 
   function route() {
@@ -118,7 +169,7 @@
   }
 
   window.OT = window.OT || {};
-  window.OT.nav = { parse: parse, route: route, MENUS: MENUS };
+  window.OT.nav = { parse: parse, route: route, trail: trail, MENUS: MENUS };
 
   window.addEventListener("hashchange", route);
   window.addEventListener("load", boot);

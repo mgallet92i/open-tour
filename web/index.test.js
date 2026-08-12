@@ -81,6 +81,14 @@ const firstUc = sandbox.window.OPENTOUR_DATA.usecases.usecases[0].id;
 assert.strictEqual(parse("#/uc/" + firstUc).screen, "usecase");
 assert.strictEqual(parse("#/uc/" + firstUc).ucId, firstUc);
 
+// trail() : le dernier segment est toujours la page courante, jamais un lien.
+const { trail } = sandbox.window.OT.nav;
+const tUc = trail(parse("#/uc/" + sandbox.window.OPENTOUR_DATA.usecases.usecases[0].id));
+assert.strictEqual(tUc.length, 3, "fil d'Ariane d'un cas d'usage : Personas > persona > titre");
+assert.ok(tUc.slice(0, -1).every((p) => p.hash), "tout segment sauf le dernier doit être cliquable");
+assert.strictEqual(tUc[tUc.length - 1].hash, undefined, "le segment courant ne doit pas être un lien");
+assert.strictEqual(trail(parse("#/personas")).length, 1);
+
 // familiesOf() : un persona ne remonte que ses propres cas d'usage.
 const { familiesOf } = sandbox.window.OT.personas;
 const p0 = sandbox.window.OPENTOUR_DATA.usecases.personas[0].id;
@@ -88,4 +96,4 @@ const fams = familiesOf(p0);
 assert.ok(fams.length > 0, "le premier persona doit avoir au moins une famille");
 assert.ok(fams.every((f) => f.ucs.every((u) => u.persona === p0)), "fuite d'un cas d'usage entre personas");
 
-console.log("OK : 15/15 assertions shell (index.html + nav.js + personas.js) PASS");
+console.log("OK : 19/19 assertions shell (index.html + nav.js + personas.js) PASS");

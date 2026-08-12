@@ -5,8 +5,7 @@
 html, body { height: 100%; margin: 0; }
 
 body {
-  display: grid;
-  grid-template-columns: 268px 1fr;
+  display: flex;
   font-family: var(--ot-font-sans);
   color: var(--ot-ink);
   background: var(--ot-bg);
@@ -16,6 +15,7 @@ body {
 /* ---------- Sidebar ---------- */
 
 #nav {
+  flex: 0 0 268px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -95,9 +95,52 @@ body {
 
 /* ---------- Zone principale ---------- */
 
-#view { min-width: 0; min-height: 0; overflow: auto; padding: 26px 32px 48px; }
+#view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;             /* conteneur de scroll -> ancre du fil d'Ariane sticky */
+}
 
-#view .vhead { margin-bottom: 22px; }
+/* Fil d'Ariane collant : toujours visible pendant le scroll. */
+#view .crumbs {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  padding: 11px 28px;
+  border-bottom: 1px solid var(--ot-line);
+  background: color-mix(in srgb, var(--ot-bg) 88%, transparent);
+  backdrop-filter: blur(6px);
+  font-size: 12.5px;
+}
+
+#view .crumbs a {
+  color: var(--ot-muted);
+  text-decoration: none;
+  border-radius: var(--ot-radius-sm);
+  padding: 2px 4px;
+}
+
+#view .crumbs a:hover { color: var(--ot-accent); background: var(--ot-accent-tint); }
+#view .crumbs .sep { color: var(--ot-line); }
+#view .crumbs .current { color: var(--ot-ink); font-weight: 600; padding: 2px 4px; }
+
+/* Hôte d'écran : occupe tout l'espace restant. */
+#view .screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 22px 28px 28px;
+}
+
+#view .vhead { margin-bottom: 18px; }
 
 #view .vhead h1 {
   margin: 0 0 4px;
@@ -109,22 +152,23 @@ body {
 #view .vhead .sub { margin: 0; max-width: 78ch; color: var(--ot-muted); line-height: 1.5; }
 
 #view .canvas {
-  margin-top: 20px;
-  border: 1px dashed var(--ot-line);
-  border-radius: var(--ot-radius-card);
-  background: var(--ot-card);
-  min-height: 380px;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px dashed var(--ot-line);
+  border-radius: var(--ot-radius-card);
+  background: var(--ot-card);
+  min-height: 240px;
   color: var(--ot-muted);
 }
 
 /* ---------- Écran Persona : mind map ---------- */
 
-.pmaps { display: flex; flex-direction: column; gap: 14px; }
+.pmaps { flex: 1; display: flex; flex-direction: column; gap: 14px; }
 
 .pmap {
+  flex: 1 0 auto;
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;

@@ -113,15 +113,28 @@
     });
   }
 
-  // OT.personas.render(host) — écran complet (tous les personas).
-  function render(host) {
+  function findPersona(id) {
+    var list = data().personas || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+
+  // OT.personas.render(host, personaId?) — tous les personas, ou un seul si ciblé.
+  function render(host, personaId) {
     var d = data();
+    var only = personaId ? findPersona(personaId) : null;
+
     host.appendChild(el("header", "vhead",
-      "<h1>Personas</h1><p class=\"sub\">Qui utilise " + (d.project.name || "l'application") +
-      ", et pour quoi faire.</p>"));
+      "<h1>" + (only ? only.name : "Personas") + "</h1>" +
+      '<p class="sub">' + (only
+        ? (only.description || "Ses cas d'usage, par famille.")
+        : "Qui utilise " + (d.project.name || "l'application") + ", et pour quoi faire.") +
+      "</p>"));
 
     var wrap = el("div", "pmaps");
-    (d.personas || []).forEach(function (p) { wrap.appendChild(renderPersonaMap(p)); });
+    (only ? [only] : d.personas || []).forEach(function (p) {
+      wrap.appendChild(renderPersonaMap(p));
+    });
     host.appendChild(wrap);
 
     function redraw() {
@@ -134,5 +147,5 @@
   }
 
   window.OT = window.OT || {};
-  window.OT.personas = { render: render, familiesOf: familiesOf, curve: curve };
+  window.OT.personas = { render: render, familiesOf: familiesOf, curve: curve, findPersona: findPersona };
 })();
