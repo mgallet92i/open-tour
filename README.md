@@ -17,6 +17,21 @@ Le repo open-tour est **générique** : tout le contenu projet vit dans le repo 
 
 Lancer : `python tools/build_data.py <project-root> && python tools/serve.py <project-root>` (sert le viewer `web/` + le `data.js` du projet + endpoint `/src` de lazy loading du code source local) puis http://127.0.0.1:8642/
 
+## Pipeline
+
+`python pipeline/run.py --project <path>` enchaîne 6 phases : **scan** (index CodeGraph + inventaire) → **batch** (clustering Louvain) → **structure** (nodes/edges déterministes) → **flows** → **enrich** (LLM) → **merge** → `knowledge-graph.json`.
+
+La phase **flows** (`pipeline/flows.py`) est spécifique **Salesforce** et **no-op** sur un projet sans `.flow-meta.xml` : CodeGraph indexe ces fichiers au niveau fichier seulement (aucune grammaire tree-sitter ne couvre la métadonnée Flow), donc `flows.py` les parse avec `xml.etree` (stdlib) pour ajouter les arêtes `calls` (Apex invoqué, sous-flux) / `imports` (objets manipulés) et fournir à `enrich.py` un digest structuré au lieu des 60 premières lignes de XML.
+
+CodeGraph (`npm i -g @colbymchenry/codegraph`) est un **prérequis d'exécution**, pas une alternative : `.codegraph/` est l'entrée de build (locale, gitignorée, régénérable), `.open-tour/` l'artefact de sortie. Détail dans [AGENTS.md](AGENTS.md).
+
+## Tests
+
+```bash
+python -m pytest pipeline tools   # unitaires
+npm run test:e2e                  # Playwright (web/)
+```
+
 ## Prérequis d'un projet cible (contrat d'entrée, version industrialisée)
 
 - Specs fonctionnelles exploitables (docs/specs ou équivalent)
