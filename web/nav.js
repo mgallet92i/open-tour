@@ -1,6 +1,5 @@
-/* OT.nav — sidebar de navigation (groupes -> use cases) + routing par hash.
-   Refonte KG v0 : le shell et la navigation ; la zone principale est un
-   placeholder tant que la vue graphe n'est pas arbitrée. */
+/* OT.nav — sidebar (menus Business / Technique) + routing par hash.
+   Refonte KG : #/personas (écran Persona), #/uc/<id> (écran Use case, à venir). */
 (function () {
   "use strict";
 
@@ -12,113 +11,114 @@
   }
 
   function data() { return window.OPENTOUR_DATA.usecases; }
-  function groups() { return data().groups || []; }
-  function usecases() { return data().usecases || []; }
 
   function findUc(id) {
-    var list = usecases();
+    var list = data().usecases || [];
     for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
     return null;
   }
 
-  // parse(hash) -> { ucId } | {} — tout hash inconnu retombe sur l'accueil.
+  // Menus de la sidebar. `soon: true` = écran pas encore construit (atelier en cours).
+  var MENUS = [
+    {
+      title: "Business",
+      items: [
+        { id: "personas", label: "Personas", hash: "#/personas", icon: "👤" },
+        { id: "usecases", label: "Cas d'usage", hash: "#/usecases", icon: "🎬", soon: true },
+      ],
+    },
+    {
+      title: "Technique",
+      items: [
+        { id: "data-model", label: "Modèle de données", hash: "#/data-model", icon: "🗄", soon: true },
+        { id: "archi", label: "Architecture logicielle", hash: "#/archi", icon: "🏗", soon: true },
+        { id: "modules", label: "Modules & règles de gestion", hash: "#/modules", icon: "⚙", soon: true },
+        { id: "docs", label: "Documents techniques", hash: "#/docs", icon: "📄", soon: true },
+      ],
+    },
+  ];
+
+  // parse(hash) -> { screen, ucId? }. Tout hash inconnu retombe sur l'écran Persona.
   function parse(hash) {
-    var m = (hash || "").replace(/^#/, "").match(/^\/uc\/([^/]+)$/);
-    if (m && findUc(m[1])) return { ucId: m[1] };
-    return {};
+    var h = (hash || "").replace(/^#/, "");
+    var mUc = h.match(/^\/uc\/([^/]+)$/);
+    if (mUc && findUc(mUc[1])) return { screen: "usecase", ucId: mUc[1] };
+    for (var i = 0; i < MENUS.length; i++) {
+      for (var j = 0; j < MENUS[i].items.length; j++) {
+        var it = MENUS[i].items[j];
+        if (h === it.hash.replace(/^#/, "")) return { screen: it.id };
+      }
+    }
+    return { screen: "personas" };
   }
 
-  function matches(uc, q) {
-    if (!q) return true;
-    var hay = (uc.title + " " + (uc.intent || "") + " " + uc.id).toLowerCase();
-    return hay.indexOf(q.toLowerCase()) !== -1;
+  // L'écran d'un use case appartient au menu Business > Personas (fil de navigation).
+  function activeMenu(resolved) {
+    return resolved.screen === "usecase" ? "personas" : resolved.screen;
   }
 
-  var query = "";
-  var collapsed = {};
-
-  function renderTree() {
-    var tree = document.querySelector("#nav .tree");
-    tree.innerHTML = "";
-    var current = parse(location.hash).ucId;
-    var shown = 0;
-
-    groups().forEach(function (g, gi) {
-      var ucs = usecases().filter(function (u) { return u.group === g.id && matches(u, query); });
-      if (!ucs.length) return;
-      shown += ucs.length;
-
-      var sec = el("div", "group" + (collapsed[g.id] ? " collapsed" : ""));
-      sec.style.setProperty("--line", g.color || ("var(--ot-line-" + ((gi % 6) + 1) + ")"));
-
-      var head = el("button", "ghead",
-        '<span class="caret">▾</span><span class="swatch"></span>' +
-        '<span class="gname">' + g.name + '</span><span class="count">' + ucs.length + "</span>");
-      head.addEventListener("click", function () {
-        collapsed[g.id] = !collapsed[g.id];
-        renderTree();
-      });
-      sec.appendChild(head);
-
-      var list = el("ul", "ucs");
-      ucs.forEach(function (uc) {
+  function renderMenus(active) {
+    var nav = document.querySelector("#nav .menus");
+    nav.innerHTML = "";
+    MENUS.forEach(function (section) {
+      var sec = el("div", "msection");
+      sec.appendChild(el("div", "mtitle", section.title));
+      var list = el("ul", "mitems");
+      section.items.forEach(function (it) {
         var li = el("li");
-        var b = el("button", "uc" + (uc.id === current ? " active" : "") + (uc.status === "draft" ? " draft" : ""), uc.title);
-        b.addEventListener("click", function () { location.hash = "#/uc/" + uc.id; });
+        var b = el("button", "mitem" + (it.id === active ? " active" : "") + (it.soon ? " soon" : ""),
+          '<span class="ico">' + it.icon + '</span><span class="lbl">' + it.label + "</span>");
+        b.addEventListener("click", function () { location.hash = it.hash; });
         li.appendChild(b);
         list.appendChild(li);
       });
       sec.appendChild(list);
-      tree.appendChild(sec);
+      nav.appendChild(list.children.length ? sec : sec);
     });
-
-    if (!shown) tree.appendChild(el("div", "empty", "Aucun cas d'usage ne correspond."));
   }
 
-  function renderView() {
+  function renderView(resolved) {
     var view = document.getElementById("view");
     view.innerHTML = "";
-    var uc = findUc(parse(location.hash).ucId);
 
-    if (!uc) {
-      view.appendChild(el("div", "placeholder",
-        "<div><p>Choisis un cas d'usage dans la navigation.</p></div>"));
+    if (resolved.screen === "personas") {
+      window.OT.personas.render(view);
       return;
     }
 
-    var head = el("div", "uchead");
-    head.appendChild(el("h1", null, uc.title));
-    head.appendChild(el("div", "sub",
-      uc.steps.length + " étape" + (uc.steps.length > 1 ? "s" : "")));
-    if (uc.intent) head.appendChild(el("p", "intent", uc.intent));
-    view.appendChild(head);
+    if (resolved.screen === "usecase") {
+      var uc = findUc(resolved.ucId);
+      var head = el("header", "vhead");
+      head.appendChild(el("h1", null, uc.title));
+      if (uc.intent) head.appendChild(el("p", "sub", uc.intent));
+      view.appendChild(head);
+      // ponytail: écran Use case (logigramme des steps) = prochaine itération d'atelier.
+      view.appendChild(el("div", "canvas", "<span>logigramme des " + uc.steps.length + " étapes — à construire</span>"));
+      return;
+    }
 
-    // ponytail: zone graphe volontairement vide en v0 — la représentation
-    // du KG est en cours d'arbitrage (références Xmind/mind map à venir).
-    view.appendChild(el("div", "canvas", "<span>zone graphe</span>"));
+    var item = null;
+    MENUS.forEach(function (s) {
+      s.items.forEach(function (it) { if (it.id === resolved.screen) item = it; });
+    });
+    view.appendChild(el("header", "vhead", "<h1>" + (item ? item.label : "") + "</h1>"));
+    view.appendChild(el("div", "canvas", "<span>écran à construire</span>"));
   }
 
   function route() {
-    renderTree();
-    renderView();
+    var resolved = parse(location.hash);
+    renderMenus(activeMenu(resolved));
+    renderView(resolved);
   }
 
   function boot() {
-    var search = document.querySelector("#nav .search input");
-    search.addEventListener("input", function () {
-      query = search.value.trim();
-      renderTree();
-    });
-
     var project = data().project || {};
-    var sub = document.querySelector("#nav .brand .project");
-    sub.textContent = project.name || "";
-
+    document.querySelector("#nav .brand .project").textContent = project.name || "";
     route();
   }
 
   window.OT = window.OT || {};
-  window.OT.nav = { parse: parse, route: route, matches: matches };
+  window.OT.nav = { parse: parse, route: route, MENUS: MENUS };
 
   window.addEventListener("hashchange", route);
   window.addEventListener("load", boot);

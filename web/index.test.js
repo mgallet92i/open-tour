@@ -12,9 +12,9 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 assert.strictEqual((html.match(/(src|href)=["'](https?:)?\/\//g) || []).length, 0);
 assert.strictEqual(/type=["']module["']/.test(html), false);
 
-// Ordre des scripts classiques : data (données) -> nav (boot).
+// Ordre des scripts classiques : data (données) -> écrans -> nav (routing + boot).
 const scripts = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
-assert.deepStrictEqual(scripts, ["data.js", "nav.js"]);
+assert.deepStrictEqual(scripts, ["data.js", "personas.js", "nav.js"]);
 
 // Feuilles de style et hôtes du shell.
 const links = [...html.matchAll(/<link[^>]*rel="stylesheet"[^>]*href="([^"]+)"/g)].map((m) => m[1]);
@@ -36,36 +36,56 @@ class FakeEl {
   get innerHTML() { return this._html; }
   appendChild(c) { this.children.push(c); return c; }
   querySelector() { return new FakeEl("div"); }
+  querySelectorAll() { return []; }
+  getBoundingClientRect() { return { top: 0, left: 0, right: 0, bottom: 0, width: 0, height: 0 }; }
   addEventListener() {}
   setAttribute() {}
 }
 const hosts = { nav: new FakeEl("aside"), view: new FakeEl("main") };
-const tree = new FakeEl("nav");
+const menus = new FakeEl("nav");
 const doc = {
   getElementById: (id) => hosts[id] || null,
-  querySelector: (sel) => (sel === "#nav .tree" ? tree : new FakeEl("div")),
+  querySelector: (sel) => (sel === "#nav .menus" ? menus : new FakeEl("div")),
   createElement: (t) => new FakeEl(t),
+  createElementNS: (ns, t) => new FakeEl(t),
   createTextNode: (t) => ({ text: t }),
   addEventListener: () => {},
 };
 const win = {
   addEventListener: (evt, fn) => { if (evt === "load") win._load = fn; },
+  removeEventListener: () => {},
   requestAnimationFrame: (fn) => fn(),
+  getComputedStyle: () => ({ getPropertyValue: () => "#000" }),
   location: { hash: "" },
 };
-const sandbox = { window: win, document: doc, location: win.location, requestAnimationFrame: win.requestAnimationFrame };
+const sandbox = {
+  window: win,
+  document: doc,
+  location: win.location,
+  requestAnimationFrame: win.requestAnimationFrame,
+  getComputedStyle: win.getComputedStyle,
+};
 vm.createContext(sandbox);
 scripts.forEach((f) => vm.runInContext(fs.readFileSync(path.join(__dirname, f === "data.js" ? "data.fixture.js" : f), "utf8"), sandbox));
 assert.doesNotThrow(() => sandbox.window._load());
-assert.ok(tree.children.length > 0, "la sidebar doit lister au moins un groupe");
-assert.ok(hosts.view.children.length > 0, "la vue doit afficher le placeholder sur hash vide");
+assert.ok(menus.children.length > 0, "la sidebar doit rendre ses sections de menu");
+assert.ok(hosts.view.children.length > 0, "la vue doit rendre l'écran Persona sur hash vide");
 
-// parse() : hash inconnu -> accueil ; hash valide -> ucId.
+// parse() : hash inconnu -> écran Persona ; hash valide -> écran ciblé.
 const { parse } = sandbox.window.OT.nav;
 // (les objets viennent du realm vm : comparer les valeurs, pas les prototypes)
-assert.strictEqual(parse("#/n-importe-quoi").ucId, undefined);
-assert.strictEqual(parse("#/uc/inconnu").ucId, undefined);
+assert.strictEqual(parse("#/n-importe-quoi").screen, "personas");
+assert.strictEqual(parse("#/uc/inconnu").screen, "personas");
+assert.strictEqual(parse("#/archi").screen, "archi");
 const firstUc = sandbox.window.OPENTOUR_DATA.usecases.usecases[0].id;
+assert.strictEqual(parse("#/uc/" + firstUc).screen, "usecase");
 assert.strictEqual(parse("#/uc/" + firstUc).ucId, firstUc);
 
-console.log("OK : 12/12 assertions shell (index.html + nav.js) PASS");
+// familiesOf() : un persona ne remonte que ses propres cas d'usage.
+const { familiesOf } = sandbox.window.OT.personas;
+const p0 = sandbox.window.OPENTOUR_DATA.usecases.personas[0].id;
+const fams = familiesOf(p0);
+assert.ok(fams.length > 0, "le premier persona doit avoir au moins une famille");
+assert.ok(fams.every((f) => f.ucs.every((u) => u.persona === p0)), "fuite d'un cas d'usage entre personas");
+
+console.log("OK : 15/15 assertions shell (index.html + nav.js + personas.js) PASS");
