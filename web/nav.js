@@ -189,6 +189,14 @@
   }
 
   function boot() {
+    // Normalisation unique au démarrage : `steps` peut être absent ou null (le
+    // data.js vient d'un LLM et de markdown écrit à la main). Sans ça,
+    // uc.steps.forEach / .length lèvent et l'écran entier tombe. Un seul point
+    // de passage plutôt qu'une garde dans chaque consommateur.
+    (data().usecases || []).forEach(function (u) {
+      if (!Array.isArray(u.steps)) u.steps = [];
+    });
+
     var project = data().project || {};
     document.querySelector("#nav .brand .project").textContent = project.name || "";
     route();

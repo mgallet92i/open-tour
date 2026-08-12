@@ -78,4 +78,15 @@ const unknown = langOf("fichier.zzz");
 assert.strictEqual(unknown.line, null);
 assert.strictEqual(texts("// pas un commentaire ici", unknown).join(""), "// pas un commentaire ici");
 
-console.log("OK : 27/27 assertions tokenizer code.js PASS");
+// clampRange : une plage invalide est refusée (pas de surlignage mensonger),
+// une plage valide est bornée à la taille du fichier. (constat MINEUR GPT-5.6)
+const { clampRange } = sandbox.window.OT.code;
+assert.strictEqual(clampRange(50, 10, 100), null, "start > end doit etre refuse");
+assert.strictEqual(clampRange(-5, 999, 100), null, "start < 1 doit etre refuse");
+assert.strictEqual(clampRange(120, 130, 100), null, "plage entierement hors fichier refusee");
+assert.strictEqual(clampRange(null, null, 100), null);
+assert.strictEqual(clampRange(1.5, 4, 100), null, "des non-entiers sont refuses");
+assert.strictEqual(clampRange(23, 189, 100).join("-"), "23-100", "la fin est bornee au fichier");
+assert.strictEqual(clampRange(1, 1, 100).join("-"), "1-1");
+
+console.log("OK : 34/34 assertions tokenizer code.js PASS");

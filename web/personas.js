@@ -27,15 +27,29 @@
   }
 
   // Familles d'un persona, dans l'ordre de déclaration des groupes (stable).
+  // Les cas d'usage sans famille connue (`groups` absent, ou `group` qui ne
+  // correspond à rien) sont regroupés dans une famille de repli : un cas
+  // d'usage valide ne doit JAMAIS disparaître en silence de l'écran.
   function familiesOf(personaId) {
     var groups = data().groups || [];
+    var mine = (data().usecases || []).filter(function (u) { return u.persona === personaId; });
+    var known = {};
+    groups.forEach(function (g) { known[g.id] = true; });
+
     var out = [];
     groups.forEach(function (g, gi) {
-      var ucs = (data().usecases || []).filter(function (u) {
-        return u.persona === personaId && u.group === g.id;
-      });
+      var ucs = mine.filter(function (u) { return u.group === g.id; });
       if (ucs.length) out.push({ group: g, index: gi, ucs: ucs });
     });
+
+    var orphans = mine.filter(function (u) { return !known[u.group]; });
+    if (orphans.length) {
+      out.push({
+        group: { id: "__sans_famille__", name: "Sans famille", icon: "•", color: "var(--ot-muted)" },
+        index: out.length,
+        ucs: orphans,
+      });
+    }
     return out;
   }
 

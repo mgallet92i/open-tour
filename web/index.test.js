@@ -112,6 +112,26 @@ if (ucWithSteps) {
   assert.ok(tStep.slice(0, -1).every((p) => p.hash), "seul le segment courant est sans lien");
 }
 
+// `steps` absent/null : normalisé au boot, aucun écran ne doit tomber.
+// (constat MAJEUR GPT-5.6 : uc.steps.forEach levait un TypeError)
+const D = sandbox.window.OPENTOUR_DATA.usecases;
+D.usecases.push({ id: "uc-sans-steps", persona: D.personas[0].id, group: "inconnu", title: "Sans étapes", steps: null });
+sandbox.window._load();
+assert.ok(Array.isArray(D.usecases[D.usecases.length - 1].steps), "steps doit être normalisé en tableau");
+sandbox.location.hash = "#/uc/uc-sans-steps";
+assert.doesNotThrow(() => sandbox.window.OT.nav.route(), "l'écran d'un use case sans étapes ne doit pas tomber");
+assert.strictEqual(parse("#/uc/uc-sans-steps/step/0").screen, "usecase", "index d'étape hors bornes -> use case");
+
+// Un cas d'usage dont le `group` ne correspond à rien reste visible dans une
+// famille de repli (constat MAJEUR GPT-5.6 : disparition silencieuse).
+const orphanFams = sandbox.window.OT.personas.familiesOf(D.personas[0].id);
+assert.ok(
+  orphanFams.some((f) => f.ucs.some((u) => u.id === "uc-sans-steps")),
+  "un cas d'usage sans famille connue doit apparaitre dans une famille de repli"
+);
+sandbox.location.hash = "";
+D.usecases.pop();
+
 // familiesOf() : un persona ne remonte que ses propres cas d'usage.
 const { familiesOf } = sandbox.window.OT.personas;
 const p0 = sandbox.window.OPENTOUR_DATA.usecases.personas[0].id;
@@ -119,4 +139,4 @@ const fams = familiesOf(p0);
 assert.ok(fams.length > 0, "le premier persona doit avoir au moins une famille");
 assert.ok(fams.every((f) => f.ucs.every((u) => u.persona === p0)), "fuite d'un cas d'usage entre personas");
 
-console.log("OK : 26/26 assertions shell (index.html + nav.js + personas.js + usecase.js) PASS");
+console.log("OK : 31/31 assertions shell (index.html + nav.js + personas.js + usecase.js) PASS");

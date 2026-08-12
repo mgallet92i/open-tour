@@ -136,6 +136,18 @@
     return out;
   }
 
+  // clampRange(start, end, total) -> [start, end] | null
+  // Une plage n'est retenue que si elle est faite de deux entiers >= 1 avec
+  // start <= end, et qu'elle recoupe le fichier ; elle est ensuite bornée à sa
+  // taille. Sinon on n'affiche AUCUNE plage : mieux vaut pas d'information
+  // qu'un « lignes 50–10 » ou un fichier entier surligné comme s'il était la
+  // plage demandée.
+  function clampRange(start, end, total) {
+    if (!Number.isInteger(start) || !Number.isInteger(end)) return null;
+    if (start < 1 || end < start || start > total) return null;
+    return [start, Math.min(end, total)];
+  }
+
   // render(host, {path, content, start, end}) — construit le visualiseur inline.
   // Les tokens sont posés en textContent : aucun échappement HTML à gérer.
   function render(host, opts) {
@@ -143,18 +155,23 @@
     var box = document.createElement("div");
     box.className = "codeview";
 
+    var lines = (opts.content === null || opts.content === undefined)
+      ? null
+      : opts.content.split("\n");
+    var range = lines ? clampRange(opts.start, opts.end, lines.length) : null;
+
     var bar = document.createElement("div");
     bar.className = "cbar";
     bar.appendChild(elText("span", "cpath", opts.path));
-    if (opts.start) {
-      bar.appendChild(elText("span", "crange", "lignes " + opts.start + "–" + opts.end));
+    if (range) {
+      bar.appendChild(elText("span", "crange", "lignes " + range[0] + "–" + range[1]));
     }
     box.appendChild(bar);
 
     var scroll = document.createElement("div");
     scroll.className = "cscroll";
 
-    if (opts.content === null || opts.content === undefined) {
+    if (!lines) {
       scroll.appendChild(elText("div", "cempty",
         "Source indisponible — lancer le serveur : python tools/serve.py <project-root>"));
       box.appendChild(scroll);
@@ -167,10 +184,10 @@
     var pre = document.createElement("pre");
     var firstHi = null;
 
-    opts.content.split("\n").forEach(function (line, idx) {
+    lines.forEach(function (line, idx) {
       var n = idx + 1;
       var row = document.createElement("div");
-      var hi = opts.start && n >= opts.start && n <= opts.end;
+      var hi = !!range && n >= range[0] && n <= range[1];
       row.className = "cl" + (hi ? " hi" : "");
       row.appendChild(elText("span", "ln", String(n)));
       var code = document.createElement("span");
@@ -218,5 +235,8 @@
   }
 
   window.OT = window.OT || {};
-  window.OT.code = { render: render, fetchSource: fetchSource, tokenizeLine: tokenizeLine, langOf: langOf };
+  window.OT.code = {
+    render: render, fetchSource: fetchSource, tokenizeLine: tokenizeLine,
+    langOf: langOf, clampRange: clampRange,
+  };
 })();

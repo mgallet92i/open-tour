@@ -46,6 +46,8 @@
 
   var selected = null;        // { modId, symName, start, end }
   var activeTab = "modules";  // "modules" | "rules"
+  var lastKey = null;         // "<ucId>/<stepIdx>" — identité de l'étape affichée
+  var paintSeq = 0;           // jeton de peinture : seule la dernière réponse rend
 
   var TABS = [
     { id: "modules", label: "Modules impliqués" },
@@ -122,7 +124,9 @@
       });
       mod.appendChild(head);
 
-      var syms = (n.symbols || []).filter(function (s) { return s.lineRange; });
+      var syms = (n.symbols || []).filter(function (s) {
+        return s.lineRange && s.lineRange.length === 2;
+      });
       if (syms.length) {
         var ul = el("ul", "symlist");
         syms.forEach(function (s) {
@@ -151,17 +155,25 @@
 
   async function paintCode(host) {
     var g = graph();
-    var mod = selected && g[selected.modId];
+    // Copie figée de la sélection AVANT l'attente : sans ça, une réponse lente
+    // pour le module A se rendait avec la plage du symbole choisi entre-temps
+    // dans le module B.
+    var sel = selected;
+    var mod = sel && g[sel.modId];
     if (!mod) {
       host.innerHTML = "";
       host.appendChild(elText("div", "cplaceholder", "Choisis un module ou une fonction pour afficher le code."));
       return;
     }
+
+    var seq = ++paintSeq;
     host.innerHTML = "";
     host.appendChild(elText("div", "cplaceholder", "Chargement de " + mod.filePath + "…"));
     var content = await window.OT.code.fetchSource(mod.filePath);
+    // Une réponse arrivée après une sélection plus récente ne peint plus rien.
+    if (seq !== paintSeq) return;
     window.OT.code.render(host, {
-      path: mod.filePath, content: content, start: selected.start, end: selected.end,
+      path: mod.filePath, content: content, start: sel.start, end: sel.end,
     });
   }
 
@@ -198,6 +210,15 @@
   function render(host, uc, stepIdx) {
     var step = uc.steps[stepIdx];
     var resolved = resolveNodes(step.nodes, graph());
+
+    // La sélection appartient à UNE étape : deux étapes peuvent référencer le
+    // même module, et le symbole choisi dans la première ne doit pas rester
+    // surligné dans la seconde.
+    var key = uc.id + "/" + stepIdx;
+    if (key !== lastKey) {
+      selected = null;
+      lastKey = key;
+    }
 
     // Sélection par défaut : premier module de l'étape.
     if (!selected || !graph()[selected.modId] || (step.nodes || []).indexOf(selected.modId) === -1) {
