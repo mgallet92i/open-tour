@@ -45,7 +45,13 @@
     return out;
   }
 
-  var selected = null;   // { modId, symName, start, end }
+  var selected = null;        // { modId, symName, start, end }
+  var activeTab = "modules";  // "modules" | "rules"
+
+  var TABS = [
+    { id: "modules", label: "Modules impliqués" },
+    { id: "rules", label: "Règle de l'étape" },
+  ];
 
   // Règles des modules, dédoublonnées par texte : la même règle est couramment
   // portée à la fois par le fichier et par un de ses symboles.
@@ -71,8 +77,6 @@
 
   function renderRules(step, groups) {
     var others = dedupe(groups, step.domain);
-    if (!step.domain && !others.length) return null;
-
     var box = el("section", "rules");
 
     if (step.domain) {
@@ -83,12 +87,9 @@
     }
 
     if (others.length) {
-      // <details> natif : replié par défaut, aucun JS d'ouverture/fermeture.
-      var det = el("details", "more");
-      det.appendChild(elText("summary", null,
-        others.length + " autre" + (others.length > 1 ? "s" : "") +
-        " règle" + (others.length > 1 ? "s" : "") + " portée" + (others.length > 1 ? "s" : "") +
-        " par les modules"));
+      box.appendChild(elText("div", "sublabel",
+        others.length + " règle" + (others.length > 1 ? "s" : "") + " portée" +
+        (others.length > 1 ? "s" : "") + " par les modules"));
       var list = el("ul", "rlist");
       others.forEach(function (r) {
         var li = el("li");
@@ -96,10 +97,12 @@
         li.appendChild(elText("span", "txt", r.rule));
         list.appendChild(li);
       });
-      det.appendChild(list);
-      box.appendChild(det);
+      box.appendChild(list);
     }
 
+    if (!box.children.length) {
+      box.appendChild(elText("div", "empty", "Aucune règle de gestion rattachée à cette étape."));
+    }
     return box;
   }
 
@@ -163,6 +166,35 @@
     });
   }
 
+  function renderTabs(onSwitch) {
+    var bar = el("div", "tabs");
+    bar.setAttribute("role", "tablist");
+    TABS.forEach(function (t) {
+      var b = elText("button", "tab" + (t.id === activeTab ? " active" : ""), t.label);
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", t.id === activeTab ? "true" : "false");
+      b.addEventListener("click", function () { onSwitch(t.id); });
+      bar.appendChild(b);
+    });
+    return bar;
+  }
+
+  function renderModulesTab(resolved) {
+    var cols = el("div", "tech");
+    var codeHost = el("div", "codepane");
+
+    function repaint(sel) {
+      selected = sel;
+      cols.replaceChild(renderModules(resolved, repaint), cols.firstChild);
+      paintCode(codeHost);
+    }
+
+    cols.appendChild(renderModules(resolved, repaint));
+    cols.appendChild(codeHost);
+    paintCode(codeHost);
+    return cols;
+  }
+
   // OT.step.render(host, uc, stepIdx)
   function render(host, uc, stepIdx) {
     var step = uc.steps[stepIdx];
@@ -180,24 +212,24 @@
     if (step.story) head.appendChild(elText("p", "sub", step.story));
     host.appendChild(head);
 
-    var rules = renderRules(step, collectRules(resolved));
-    if (rules) host.appendChild(rules);
+    var tabsHost = el("div", "tabshost");
+    var body = el("div", "tabbody");
 
-    var cols = el("div", "tech");
-    var codeHost = el("div", "codepane");
-
-    function repaint(sel) {
-      selected = sel;
-      // Re-rendu du seul panneau modules (état actif) + du code.
-      var fresh = renderModules(resolved, repaint);
-      cols.replaceChild(fresh, cols.firstChild);
-      paintCode(codeHost);
+    function paintTab() {
+      tabsHost.innerHTML = "";
+      tabsHost.appendChild(renderTabs(function (id) {
+        activeTab = id;
+        paintTab();
+      }));
+      body.innerHTML = "";
+      body.appendChild(activeTab === "rules"
+        ? renderRules(step, collectRules(resolved))
+        : renderModulesTab(resolved));
     }
 
-    cols.appendChild(renderModules(resolved, repaint));
-    cols.appendChild(codeHost);
-    host.appendChild(cols);
-    paintCode(codeHost);
+    paintTab();
+    host.appendChild(tabsHost);
+    host.appendChild(body);
   }
 
   window.OT = window.OT || {};
