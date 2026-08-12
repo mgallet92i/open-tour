@@ -10,24 +10,29 @@
 (function () {
   "use strict";
 
-  // Style de commentaires par extension. `block` = [ouvrant, fermant].
+  // Style de commentaires par extension.
+  // `line` = commentaire jusqu'en fin de ligne ; `blocks` = [ouvrant, fermant, type]
+  // multi-lignes (type `com` pour un commentaire, `str` pour un docstring Python).
+  var C_BLOCKS = [["/*", "*/", "com"]];
+  var PY_BLOCKS = [['"""', '"""', "str"], ["'''", "'''", "str"]];
+
   var LANGS = {
-    ts: { line: "//", block: ["/*", "*/"] },
-    js: { line: "//", block: ["/*", "*/"] },
-    mjs: { line: "//", block: ["/*", "*/"] },
-    java: { line: "//", block: ["/*", "*/"] },
-    cs: { line: "//", block: ["/*", "*/"] },
-    go: { line: "//", block: ["/*", "*/"] },
-    rs: { line: "//", block: ["/*", "*/"] },
-    css: { line: null, block: ["/*", "*/"] },
-    cls: { line: "//", block: ["/*", "*/"] },   // Apex
-    trigger: { line: "//", block: ["/*", "*/"] },
-    py: { line: "#", block: null },
-    sh: { line: "#", block: null },
-    yml: { line: "#", block: null },
-    yaml: { line: "#", block: null },
-    toml: { line: "#", block: null },
-    sql: { line: "--", block: ["/*", "*/"] },
+    ts: { line: "//", blocks: C_BLOCKS },
+    js: { line: "//", blocks: C_BLOCKS },
+    mjs: { line: "//", blocks: C_BLOCKS },
+    java: { line: "//", blocks: C_BLOCKS },
+    cs: { line: "//", blocks: C_BLOCKS },
+    go: { line: "//", blocks: C_BLOCKS },
+    rs: { line: "//", blocks: C_BLOCKS },
+    css: { line: null, blocks: C_BLOCKS },
+    cls: { line: "//", blocks: C_BLOCKS },      // Apex
+    trigger: { line: "//", blocks: C_BLOCKS },
+    py: { line: "#", blocks: PY_BLOCKS },
+    sh: { line: "#", blocks: null },
+    yml: { line: "#", blocks: null },
+    yaml: { line: "#", blocks: null },
+    toml: { line: "#", blocks: null },
+    sql: { line: "--", blocks: C_BLOCKS },
   };
 
   var KEYWORDS = new Set((
@@ -40,7 +45,7 @@
 
   function langOf(path) {
     var ext = (path || "").split(".").pop().toLowerCase();
-    return LANGS[ext] || { line: null, block: null };
+    return LANGS[ext] || { line: null, blocks: null };
   }
 
   function isWordChar(c) { return /[A-Za-z0-9_$]/.test(c); }
@@ -52,17 +57,35 @@
     function flush() { if (plain) { out.push(["plain", plain]); plain = ""; } }
 
     while (i < line.length) {
+      // Dans un bloc ouvert sur une ligne précédente : on consomme jusqu'au fermant.
       if (state.block) {
-        var close = lang.block ? lang.block[1] : "*/";
+        var close = state.block.end, btype = state.block.type;
         var idx = line.indexOf(close, i);
-        if (idx === -1) { out.push(["com", line.slice(i)]); i = line.length; }
-        else { out.push(["com", line.slice(i, idx + close.length)]); i = idx + close.length; state.block = false; }
+        if (idx === -1) { out.push([btype, line.slice(i)]); i = line.length; }
+        else {
+          out.push([btype, line.slice(i, idx + close.length)]);
+          i = idx + close.length;
+          state.block = null;
+        }
         continue;
       }
 
-      if (lang.block && line.startsWith(lang.block[0], i)) {
+      var opened = null;
+      (lang.blocks || []).forEach(function (b) {
+        if (!opened && line.startsWith(b[0], i)) opened = b;
+      });
+      if (opened) {
         flush();
-        state.block = true;
+        // Ouverture ET fermeture sur la même ligne (docstring d'une ligne).
+        var endIdx = line.indexOf(opened[1], i + opened[0].length);
+        if (endIdx !== -1) {
+          out.push([opened[2], line.slice(i, endIdx + opened[1].length)]);
+          i = endIdx + opened[1].length;
+        } else {
+          out.push([opened[2], line.slice(i)]);
+          i = line.length;
+          state.block = { end: opened[1], type: opened[2] };
+        }
         continue;
       }
 
@@ -140,7 +163,7 @@
     }
 
     var lang = langOf(opts.path);
-    var state = { block: false };
+    var state = { block: null };
     var pre = document.createElement("pre");
     var firstHi = null;
 

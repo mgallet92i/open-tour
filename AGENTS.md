@@ -67,7 +67,7 @@ Prérequis hôte (`check_host_prereqs`) : binaire `codegraph`, Node ≥ 22, et u
 
 ```bash
 python -m pytest pipeline tools                       # unitaires Python (13)
-for t in index router screens drilldown; do node web/$t.test.js; done   # web (47 assertions)
+for t in index code; do node web/$t.test.js; done     # web (45 assertions)
 python pipeline/_common.py                            # self-checks de module
 ```
 

@@ -11,8 +11,8 @@ vm.createContext(sandbox);
 vm.runInContext(fs.readFileSync(path.join(__dirname, "code.js"), "utf8"), sandbox);
 const { tokenizeLine, langOf } = sandbox.window.OT.code;
 
-const types = (line, lang, state) => tokenizeLine(line, lang, state || { block: false }).map((t) => t[0]).join(",");
-const texts = (line, lang, state) => tokenizeLine(line, lang, state || { block: false }).map((t) => t[1]);
+const types = (line, lang, state) => tokenizeLine(line, lang, state || { block: null }).map((t) => t[0]).join(",");
+const texts = (line, lang, state) => tokenizeLine(line, lang, state || { block: null }).map((t) => t[1]);
 
 const ts = langOf("admin.ts");
 const py = langOf("scan.py");
@@ -47,22 +47,35 @@ assert.ok(texts("a1 = 2", ts).join("") === "a1 = 2");
 assert.strictEqual(types('x = "pas fermé', ts), "plain,str");
 
 // Commentaire de bloc multi-lignes : l'état est porté d'une ligne à l'autre.
-const state = { block: false };
+const state = { block: null };
 assert.strictEqual(types("/* debut", ts, state), "com");
-assert.strictEqual(state.block, true, "le bloc doit rester ouvert");
+assert.ok(state.block, "le bloc doit rester ouvert");
 assert.strictEqual(types("toujours dedans", ts, state), "com");
-assert.strictEqual(state.block, true);
+assert.ok(state.block);
 const closing = tokenizeLine("fin */ const y = 1;", ts, state);
-assert.strictEqual(state.block, false, "le bloc doit se refermer sur */");
+assert.strictEqual(state.block, null, "le bloc doit se refermer sur */");
 assert.strictEqual(closing[0][0], "com");
 assert.ok(closing.some((t) => t[0] === "kw"), "le code après */ doit être colorié normalement");
 
 // Python n'a pas de commentaire de bloc /* */ : la ligne reste du texte.
 assert.ok(!types("/* pas un commentaire python */", py).split(",").includes("com"));
 
+// Docstring Python : bloc """ ... """ porté sur plusieurs lignes, colorié en
+// chaîne — sinon la prose se fait coloriser comme du code (True, global, guillemets).
+const pyState = { block: null };
+assert.strictEqual(types('"""Docstring ouvrant', py, pyState), "str");
+assert.ok(pyState.block, "le docstring doit rester ouvert");
+assert.strictEqual(types("True global ' guillemet", py, pyState), "str", "la prose du docstring reste une chaine");
+assert.strictEqual(types('fin """', py, pyState), "str");
+assert.strictEqual(pyState.block, null, "le docstring doit se refermer");
+// Docstring d'une seule ligne : ouvert et ferme sur place, l'etat reste propre.
+const oneLine = { block: null };
+assert.strictEqual(types('"""resume."""', py, oneLine), "str");
+assert.strictEqual(oneLine.block, null);
+
 // Extension inconnue : aucun style de commentaire, aucune exception.
 const unknown = langOf("fichier.zzz");
 assert.strictEqual(unknown.line, null);
 assert.strictEqual(texts("// pas un commentaire ici", unknown).join(""), "// pas un commentaire ici");
 
-console.log("OK : 20/20 assertions tokenizer code.js PASS");
+console.log("OK : 27/27 assertions tokenizer code.js PASS");

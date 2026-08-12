@@ -47,7 +47,7 @@ window.OPENTOUR_DATA = { "usecases": {...}, "graph": {...} };
 | `project.description` | string | Résumé métier (rédigé à la main, pas dérivé du pipeline) |
 | `project.graphSource` | string | Chemin résolu vers `knowledge-graph.json` (frontmatter optionnel, défaut `../knowledge-graph.json` relatif à `usecases/`) |
 | `personas[]` | array | `{id, name, icon, description}` |
-| `groups[]` | array | `{id, name, icon, description, color}` — lignes du plan (métro), EX-015 |
+| `groups[]` | array | `{id, name, icon, description, color}` — **familles de cas d'usage** (branches du mind map de l'écran Persona) |
 | `usecases[]` | array | `{id, persona, group, title, status, intent, trigger, outcome, scenario, steps[]}` |
 | `usecases[].group` | string | FK → `groups[].id` (NOUVEAU, EX-015) |
 | `usecases[].status` | `"draft"` \| `"validated"` | Curation humaine (NOUVEAU, EX-002/005) — `draft` tant qu'un humain n'a pas relu |
@@ -79,7 +79,7 @@ exigerait d'abord d'extraire les branches en amont (Gherkin, call-graph, ou
 | `name` | string | Nom de la ligne affiché au plan |
 | `icon` | string | Icône de la ligne |
 | `description` | string | Résumé de la ligne |
-| `color` | string | Couleur de ligne, **distincte par ligne** (INV-007). Posée par le plan en variable CSS locale `--line` sur `.mline` (ui.md §2.2). Une échelle de secours (`--ot-line-1..6`, tokens.css) est cyclée par ordre de déclaration si `color` est absent ou en collision. |
+| `color` | string | Couleur de la famille, **distincte par famille**. Posée en variable CSS locale `--fam` (écran Persona) / `--fam` du logigramme. Une échelle de secours (`--ot-line-1..6`, tokens.css) est cyclée par ordre de déclaration si `color` est absent. |
 
 ## Racine `graph` — dict `{node_id: FileEntry}`
 
