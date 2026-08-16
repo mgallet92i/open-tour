@@ -35,7 +35,7 @@ def _load_codegraph_index(conn: sqlite3.Connection) -> dict:
         SELECT n.id, n.kind, n.name, n.file_path, n.start_line, n.end_line
         FROM edges e JOIN nodes n ON e.target = n.id
         JOIN nodes fn ON e.source = fn.id
-        WHERE e.kind = 'contains' AND fn.kind = 'file' AND n.kind IN ('function', 'class')
+        WHERE e.kind = 'contains' AND fn.kind IN ('file', 'namespace') AND n.kind IN ('function', 'class')
         """
     ).fetchall()
 
@@ -171,7 +171,8 @@ def structure(project: Path) -> list[Path]:
 
 def _fixture_index() -> dict:
     """Fixture SQLite en mémoire couvrant symbole top-level, classe+méthode,
-    call cross-symbole, self-loop, call vers variable (T-003/T-004)."""
+    call cross-symbole, self-loop, call vers variable (T-003/T-004), et
+    classe encapsulée dans un namespace (C#/VB.NET : file -> namespace -> class)."""
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE files (path TEXT PRIMARY KEY)")
     conn.execute(
@@ -180,6 +181,7 @@ def _fixture_index() -> dict:
     conn.execute("CREATE TABLE edges (source TEXT, target TEXT, kind TEXT, line INTEGER)")
 
     conn.execute("INSERT INTO files VALUES ('a.py')")
+    conn.execute("INSERT INTO files VALUES ('b.cs')")
     conn.executemany(
         "INSERT INTO nodes VALUES (?, ?, ?, ?, ?, ?)",
         [
@@ -188,6 +190,13 @@ def _fixture_index() -> dict:
             ("cl1", "class", "Bar", "a.py", 10, 20),
             ("m1", "method", "baz", "a.py", 11, 15),
             ("v1", "variable", "X", "a.py", None, None),
+            # fonction imbriquée dans une méthode : NON top-level, doit rester exclue
+            ("fn2", "function", "inner", "a.py", 12, 14),
+            # C# : la classe pend sous un namespace, pas sous le fichier
+            ("f2", "file", "b.cs", "b.cs", None, None),
+            ("ns1", "namespace", "Acme.Dal", "b.cs", 1, 40),
+            ("cl2", "class", "Repo", "b.cs", 5, 30),
+            ("m2", "method", "Load", "b.cs", 6, 12),
         ],
     )
     conn.executemany(
@@ -199,6 +208,10 @@ def _fixture_index() -> dict:
             ("fn1", "m1", "calls", 3),   # cross-symbole -> résolu vers la classe Bar
             ("fn1", "fn1", "calls", 4),  # self-loop -> exclu
             ("m1", "v1", "calls", 12),   # cible variable non résolue -> exclue
+            ("m1", "fn2", "contains", None),  # parent method -> fn2 non top-level
+            ("f2", "ns1", "contains", None),
+            ("ns1", "cl2", "contains", None),
+            ("cl2", "m2", "contains", None),
         ],
     )
     conn.commit()
@@ -208,10 +221,14 @@ def _fixture_index() -> dict:
 def _selfcheck_load_index() -> None:
     """T-003 self-check : résolution/dédup/filtrage de _load_codegraph_index."""
     index = _fixture_index()
-    assert index["indexed_files"] == {"a.py"}
+    assert index["indexed_files"] == {"a.py", "b.cs"}
     assert {s["id"] for s in index["symbols_by_file"]["a.py"]} == {"function:a.py:foo", "class:a.py:Bar"}
     calls = index["calls_by_file"]["a.py"]
     assert calls == [("function:a.py:foo", "class:a.py:Bar", 3)], calls
+    # Une classe encapsulée dans un namespace reste un symbole top-level du fichier :
+    # sans cela, 100 % des classes C# disparaissent du graphe.
+    cs_symbols = {s["id"] for s in index["symbols_by_file"].get("b.cs", [])}
+    assert cs_symbols == {"class:b.cs:Repo"}, cs_symbols
     print("OK structure.py _load_codegraph_index self-check")
 
 
