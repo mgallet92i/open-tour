@@ -74,3 +74,55 @@ python pipeline/_common.py                            # self-checks de module
 Les tests web sont des **self-checks Node sans framework** (`assert` stdlib, DOM factice) — pas de jsdom, pas de runner.
 
 ⚠️ `npm run test:e2e` **ne marche pas** : `playwright.config.ts` pointe sur `testDir: ./e2e`, répertoire absent du repo (les specs e2e dépendaient d'un projet interne). Soit écrire les specs, soit retirer la config — ne pas la documenter comme fonctionnelle.
+
+---
+
+<!-- deluminator:debut — bloc gere par `deluminator sync`, ne pas editer a la main -->
+
+## Suivi des taches — norme Deluminator
+
+**Une tache vit dans le depot qu'elle concerne**, jamais ailleurs : `.df/taches/<id>.md`, un
+fichier par tache. Pas de Jira, pas de TODO en prose, pas de backlog dans le HANDOFF. Un constat
+sur un autre depot se depose **dans ce depot-la**.
+
+Les identifiants sont a **portee de depot** : `T-001` peut exister partout sans collision,
+l'adressage inter-depots etant le couple *(depot, id)*.
+
+Un fichier = un frontmatter + un corps libre.
+
+```markdown
+---
+type: "tache"
+id: "T-001"
+titre: "Libelle court, sans le detail"
+statut: "A faire"
+priorite: "2. Moyen"
+echeance: null
+theme: "Infra"
+maj: "2026-08-21"
+---
+
+Le detail, le pourquoi, les pistes, ce qui a ete essaye. Lien vers une autre tache : [[T-002]].
+```
+
+- `statut` : `A faire` | `En cours` | `En attente` | `Termine`
+- `priorite` : `1. Haut` | `2. Moyen` | `3. Bas` (le rang prefixe rend le tri lexical correct)
+- `echeance` : `"2026-09-30"` ou `null`
+
+> **INVARIANT — toute valeur de frontmatter est un litteral JSON** (chaine entre guillemets,
+> nombre, booleen ou `null`). C'est du YAML valide, JSON en etant un sous-ensemble, et ca se lit
+> sans analyseur YAML donc sans dependance. Un titre contenant `:`, `---`, `#` ou un saut de ligne
+> ne peut ni casser le document ni etre altere. Une valeur non quotee est **refusee franchement**,
+> jamais devinee.
+
+Apres **toute** ecriture dans `.df/taches/`, regenerer l'index :
+
+```
+deluminator index          # regenere .df/taches/index.md
+deluminator index --check  # ne regenere rien, ECHOUE si l'index est perime
+```
+
+`index.md` est **genere** : committe, trie, sans horodatage — ne jamais l'editer a la main.
+Outil : `C:/projets/deluminator` (installation : `npm i -g .` depuis ce dossier).
+
+<!-- deluminator:fin -->
