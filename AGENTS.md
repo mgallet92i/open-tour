@@ -123,6 +123,15 @@ deluminator index --check  # ne regenere rien, ECHOUE si l'index est perime
 ```
 
 `index.md` est **genere** : committe, trie, sans horodatage — ne jamais l'editer a la main.
+
+Un hook `pre-commit` lance ce controle : **un commit qui laisse l'index perime est refuse**. Mais
+un hook git n'est **pas versionne** — un clone frais n'en a aucun, et rien ne le signale puisque
+les commits continuent de passer. Apres un clone :
+
+```
+deluminator hook          # (re)pose le controle en pre-commit — idempotent
+```
+
 Outil : `C:/projets/deluminator` (installation : `npm i -g .` depuis ce dossier).
 
 <!-- deluminator:fin -->
