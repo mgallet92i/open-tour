@@ -105,7 +105,17 @@ maj: "2026-08-21"
 Le detail, le pourquoi, les pistes, ce qui a ete essaye. Lien vers une autre tache : [[T-002]].
 ```
 
-- `statut` : `A faire` | `En cours` | `En attente` | `Termine`
+- `statut` : `A faire` | `En cours` | `En attente`
+
+> **Une tache achevee se SUPPRIME, elle ne se marque pas.** Il n'y a pas de statut `Termine` :
+> `.df/taches/` ne contient que du travail vivant — ce qui est en cours, a faire, ou bloque par
+> un tiers. Une tache finie est un fichier a `git rm`, puis `deluminator index`.
+>
+> Pourquoi : l'index est la seule vue que quiconque consulte, et du travail deja fait qui y
+> figure se lit exactement comme du travail restant. Le pourquoi, les pistes et ce qui a ete
+> essaye ne sont pas perdus pour autant — `git log --diff-filter=D -- .df/taches/` les rend,
+> et c'est la bonne place pour de l'archeologie : pas sous les yeux tous les jours.
+> (Regle Mathieu, 2026-08-22.)
 - `priorite` : `1. Haut` | `2. Moyen` | `3. Bas` (le rang prefixe rend le tri lexical correct)
 - `echeance` : `"2026-09-30"` ou `null`
 
