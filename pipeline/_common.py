@@ -19,7 +19,7 @@ VENDOR_SKILL_DIR = PIPELINE_DIR / "vendor" / "ua" / "skills" / "understand"
 # Version CLI codegraph validée (schéma interne codegraph.db non garanti stable
 # entre versions — les requêtes SQL sont isolées dans structure.py::_load_codegraph_index
 # et scan.py, seuls points à retoucher en cas de casse après un upgrade).
-CODEGRAPH_TESTED_VERSION = "1.5.0"
+CODEGRAPH_TESTED_VERSION = "1.6.2"
 
 
 def ensure_codegraph_index(project: Path) -> None:
